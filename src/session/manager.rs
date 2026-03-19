@@ -9,6 +9,8 @@ const MAX_CONCURRENT_SESSIONS: usize = 10;
 pub struct SessionManager {
     sessions: Arc<RwLock<HashMap<String, Session>>>,
     main_session_id: Arc<RwLock<Option<String>>>,
+    dispatcher_session_id: Arc<RwLock<Option<String>>>,
+    worker_session_id: Arc<RwLock<Option<String>>>,
 }
 
 impl SessionManager {
@@ -16,6 +18,8 @@ impl SessionManager {
         Self {
             sessions: Arc::new(RwLock::new(HashMap::new())),
             main_session_id: Arc::new(RwLock::new(None)),
+            dispatcher_session_id: Arc::new(RwLock::new(None)),
+            worker_session_id: Arc::new(RwLock::new(None)),
         }
     }
 
@@ -33,6 +37,46 @@ impl SessionManager {
         *main_id = Some(id.clone());
         
         tracing::info!("Main session created: {}", id);
+        drop(sessions);
+        drop(main_id);
+        
+        self.init_dispatcher().await;
+        self.init_worker().await;
+        
+        id
+    }
+    
+    async fn init_dispatcher(&self) -> String {
+        let mut sessions = self.sessions.write().await;
+        let mut dispatcher_id = self.dispatcher_session_id.write().await;
+
+        if let Some(id) = dispatcher_id.as_ref() {
+            return id.clone();
+        }
+
+        let id = uuid::Uuid::new_v4().to_string();
+        let session = Session::new(id.clone(), SessionPurpose::Dispatcher);
+        sessions.insert(id.clone(), session);
+        *dispatcher_id = Some(id.clone());
+        
+        tracing::info!("Dispatcher session created: {}", id);
+        id
+    }
+    
+    async fn init_worker(&self) -> String {
+        let mut sessions = self.sessions.write().await;
+        let mut worker_id = self.worker_session_id.write().await;
+
+        if let Some(id) = worker_id.as_ref() {
+            return id.clone();
+        }
+
+        let id = uuid::Uuid::new_v4().to_string();
+        let session = Session::new(id.clone(), SessionPurpose::Worker);
+        sessions.insert(id.clone(), session);
+        *worker_id = Some(id.clone());
+        
+        tracing::info!("Worker session created: {}", id);
         id
     }
 
@@ -146,12 +190,18 @@ impl SessionManager {
     pub async fn cleanup_finished(&self) -> usize {
         let mut sessions = self.sessions.write().await;
         let main_id = self.main_session_id.read().await.clone();
+        let dispatcher_id = self.dispatcher_session_id.read().await.clone();
+        let worker_id = self.worker_session_id.read().await.clone();
         
         let to_remove: Vec<String> = sessions
             .iter()
             .filter(|(id, s)| {
+                let is_permanent = main_id.as_ref() == Some(*id)
+                    || dispatcher_id.as_ref() == Some(*id)
+                    || worker_id.as_ref() == Some(*id);
+                
                 (s.state == SessionState::Completed || s.state == SessionState::Failed || s.state == SessionState::Cancelled)
-                    && main_id.as_ref() != Some(*id)
+                    && !is_permanent
             })
             .map(|(id, _)| id.clone())
             .collect();
@@ -163,6 +213,24 @@ impl SessionManager {
         }
 
         removed
+    }
+    
+    pub async fn get_dispatcher(&self) -> Option<Session> {
+        let dispatcher_id = self.dispatcher_session_id.read().await;
+        if let Some(id) = dispatcher_id.as_ref() {
+            self.get(id).await
+        } else {
+            None
+        }
+    }
+    
+    pub async fn get_worker(&self) -> Option<Session> {
+        let worker_id = self.worker_session_id.read().await;
+        if let Some(id) = worker_id.as_ref() {
+            self.get(id).await
+        } else {
+            None
+        }
     }
 }
 

@@ -18,8 +18,7 @@ pub struct InterruptSignal {
 }
 
 impl EventDispatcher {
-    pub fn new(agent_name: String) -> Self {
-        let (event_tx, _) = broadcast::channel(100);
+    pub fn new(agent_name: String, event_tx: broadcast::Sender<AgentEvent>) -> Self {
         let (interrupt_tx, _) = broadcast::channel(10);
         
         Self {
@@ -218,15 +217,20 @@ mod tests {
     use super::*;
     use crate::protocol::{ProcessEvent, Priority, ResourceType};
 
+    fn create_test_dispatcher(name: &str) -> EventDispatcher {
+        let (event_tx, _) = broadcast::channel(100);
+        EventDispatcher::new(name.to_string(), event_tx)
+    }
+
     #[test]
     fn test_event_dispatcher_new() {
-        let dispatcher = EventDispatcher::new("test-agent".to_string());
+        let dispatcher = create_test_dispatcher("test-agent");
         assert!(dispatcher.sse_manager().try_read().is_ok());
     }
 
     #[tokio::test]
     async fn test_dispatch_interrupt() {
-        let dispatcher = EventDispatcher::new("test".to_string());
+        let dispatcher = create_test_dispatcher("test");
         let mut rx = dispatcher.subscribe_interrupts();
         
         let event = HostEvent {
@@ -252,7 +256,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_dispatch_process_notification() {
-        let dispatcher = EventDispatcher::new("test".to_string());
+        let dispatcher = create_test_dispatcher("test");
         let mut rx = dispatcher.subscribe_events();
         
         let event = HostEvent {
@@ -277,7 +281,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_dispatch_query() {
-        let dispatcher = EventDispatcher::new("test".to_string());
+        let dispatcher = create_test_dispatcher("test");
         let mut rx = dispatcher.subscribe_events();
         
         let event = HostEvent {
@@ -302,7 +306,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_dispatch_message() {
-        let dispatcher = EventDispatcher::new("test".to_string());
+        let dispatcher = create_test_dispatcher("test");
         let mut rx = dispatcher.subscribe_events();
         
         let event = HostEvent {
@@ -327,7 +331,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_dispatch_assign_task() {
-        let dispatcher = EventDispatcher::new("test".to_string());
+        let dispatcher = create_test_dispatcher("test");
         let mut rx = dispatcher.subscribe_events();
         
         let event = HostEvent {
@@ -356,7 +360,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_dispatch_remind() {
-        let dispatcher = EventDispatcher::new("test".to_string());
+        let dispatcher = create_test_dispatcher("test");
         let mut rx = dispatcher.subscribe_events();
         
         let event = HostEvent {
@@ -381,7 +385,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_dispatch_config_update() {
-        let dispatcher = EventDispatcher::new("test".to_string());
+        let dispatcher = create_test_dispatcher("test");
         let mut rx = dispatcher.subscribe_events();
         
         let event = HostEvent {
@@ -407,7 +411,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_dispatch_resource_warning() {
-        let dispatcher = EventDispatcher::new("test".to_string());
+        let dispatcher = create_test_dispatcher("test");
         let mut rx = dispatcher.subscribe_events();
         
         let event = HostEvent {

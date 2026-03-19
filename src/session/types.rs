@@ -18,6 +18,8 @@ pub struct Session {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SessionPurpose {
     Main,
+    Dispatcher,
+    Worker,
     Query,
     Task,
     Remind,

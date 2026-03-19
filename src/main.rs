@@ -44,10 +44,10 @@ async fn main() -> Result<()> {
     let core = Arc::new(AgentCore::new(config.clone()));
     core.init().await?;
 
-    let dispatcher = Arc::new(EventDispatcher::new(config.agent_name.clone()));
+    let dispatcher = Arc::new(EventDispatcher::new(config.agent_name.clone(), core.event_tx.clone()));
 
     let core_clone = core.clone();
-    let event_handle = dispatcher.subscribe_events();
+    let event_handle = core.subscribe_events();
     
     tokio::spawn(async move {
         let mut rx = event_handle;
