@@ -29,10 +29,23 @@ in
       description = "Workspace directory";
     };
 
-    httpPort = lib.mkOption {
-      type = lib.types.port;
-      default = 8080;
-      description = "HTTP server port for file serving";
+    llm = {
+      baseUrl = lib.mkOption {
+        type = lib.types.str;
+        default = "https://api.openai.com/v1";
+        description = "LLM API base URL (OpenAI/Anthropic compatible)";
+      };
+
+      apiKey = lib.mkOption {
+        type = lib.types.str;
+        description = "LLM API key";
+      };
+
+      model = lib.mkOption {
+        type = lib.types.str;
+        default = "gpt-4o";
+        description = "LLM model name";
+      };
     };
 
     package = lib.mkOption {
@@ -52,9 +65,17 @@ in
         MANAGER_URL = cfg.managerUrl;
         INTERNAL_TOKEN = cfg.internalToken;
         WORKSPACE = cfg.workspace;
-        HTTP_PORT = toString cfg.httpPort;
+        LLM_BASE_URL = cfg.llm.baseUrl;
+        LLM_API_KEY = cfg.llm.apiKey;
+        LLM_MODEL = cfg.llm.model;
         RUST_LOG = "info";
       };
+
+      path = with pkgs; [
+        git
+        bash
+        systemd
+      ];
 
       serviceConfig = {
         Type = "simple";
@@ -67,8 +88,8 @@ in
 
     systemd.tmpfiles.rules = [
       "d ${cfg.workspace} 0755 root root -"
+      "d /run/openzerg 0755 root root -"
+      "d /run/openzerg/processes 0755 root root -"
     ];
-
-    networking.firewall.allowedTCPPorts = [ cfg.httpPort ];
   };
 }

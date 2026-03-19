@@ -22,3 +22,27 @@ pub fn collect_status() -> AgentStatus {
         disk_total_gb,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_collect_status() {
+        let status = collect_status();
+        assert!(status.online);
+        assert!(status.memory_total_mb > 0);
+    }
+
+    #[test]
+    fn test_collect_status_cpu() {
+        let status = collect_status();
+        assert!(status.cpu_percent >= 0.0);
+    }
+
+    #[test]
+    fn test_collect_status_memory() {
+        let status = collect_status();
+        assert!(status.memory_used_mb <= status.memory_total_mb);
+    }
+}
