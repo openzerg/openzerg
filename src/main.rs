@@ -33,9 +33,9 @@ async fn main() -> Result<()> {
     tracing::info!("Agent name: {}", config.agent_name);
     tracing::info!("Manager URL: {}", config.manager_url);
     tracing::info!("Workspace: {}", config.workspace);
-    tracing::info!("LLM Base URL: {}", config.llm_base_url);
-    tracing::info!("LLM Model: {}", config.llm_model);
-    tracing::info!("API Port: {}", config.api_port);
+    tracing::info!("LLM Base URL: {}", config.llm_base_url());
+    tracing::info!("LLM Model: {}", config.llm_model());
+    tracing::info!("API Port: {}", config.api_port());
     tracing::info!("Vision enabled: {}", config.vision_enabled());
 
     std::fs::create_dir_all(&config.workspace)?;
@@ -77,8 +77,8 @@ async fn main() -> Result<()> {
     });
 
     let app = api_server::create_api_router(api_state);
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.api_port)).await?;
-    tracing::info!("API server listening on port {}", config.api_port);
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.api_port())).await?;
+    tracing::info!("API server listening on port {}", config.api_port());
     
     let api_handle = tokio::spawn(async move {
         axum::serve(listener, app).await

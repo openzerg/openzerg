@@ -45,9 +45,9 @@ impl AgentCore {
         ));
         let file_manager = Arc::new(crate::file::FileManager::new(workspace_path.clone()));
         let llm_client = Arc::new(crate::llm::LLMClient::new(
-            config.llm_base_url.clone(),
-            config.llm_api_key.clone(),
-            config.llm_model.clone(),
+            config.llm_base_url().to_string(),
+            config.llm_api_key().to_string(),
+            config.llm_model().to_string(),
         ));
         let thinking_layer = Arc::new(crate::thinking::ThinkingLayer::new(
             llm_client.clone(),
@@ -60,10 +60,11 @@ impl AgentCore {
         ));
         
         let vision_client = if config.vision_enabled() {
+            let vision = &config.runtime.vision;
             Some(Arc::new(VisionClient::new(
-                config.vision_base_url.clone().unwrap_or_else(|| config.llm_base_url.clone()),
-                config.vision_api_key.clone().unwrap(),
-                config.vision_model.clone().unwrap_or_else(|| "gpt-4o".to_string()),
+                vision.base_url.clone().unwrap_or_else(|| config.llm_base_url().to_string()),
+                vision.api_key.clone().unwrap(),
+                vision.model.clone().unwrap_or_else(|| "gpt-4o".to_string()),
             )))
         } else {
             None

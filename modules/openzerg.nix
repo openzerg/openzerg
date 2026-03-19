@@ -29,26 +29,6 @@ in
       description = "Workspace directory";
     };
 
-    llm = {
-      baseUrl = lib.mkOption {
-        type = lib.types.str;
-        default = "https://api.openai.com/v1";
-        description = "LLM API base URL (OpenAI/Anthropic compatible)";
-      };
-
-      apiKey = lib.mkOption {
-        type = lib.types.nullOr lib.types.str;
-        default = null;
-        description = "LLM API key (can be set via environment)";
-      };
-
-      model = lib.mkOption {
-        type = lib.types.str;
-        default = "gpt-4o";
-        description = "LLM model name";
-      };
-    };
-
     package = lib.mkOption {
       type = lib.types.package;
       description = "The openzerg package to use";
@@ -66,11 +46,7 @@ in
         MANAGER_URL = cfg.managerUrl;
         INTERNAL_TOKEN = cfg.internalToken;
         WORKSPACE = cfg.workspace;
-        LLM_BASE_URL = cfg.llm.baseUrl;
-        LLM_MODEL = cfg.llm.model;
         RUST_LOG = "info";
-      } // lib.optionalAttrs (cfg.llm.apiKey != null) {
-        LLM_API_KEY = cfg.llm.apiKey;
       };
 
       path = with pkgs; [
