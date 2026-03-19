@@ -190,6 +190,10 @@ impl Config {
     pub fn api_port(&self) -> u16 {
         self.runtime.api_port
     }
+
+    pub fn grpc_port(&self) -> u16 {
+        50051
+    }
 }
 
 #[cfg(test)]

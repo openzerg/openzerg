@@ -9,13 +9,11 @@ use crate::event::EventDispatcher;
 use crate::error::{Result, Error};
 use crate::Config;
 use crate::stats_collector;
-use crate::rpc::RpcRegistry;
 use crate::agent::AgentCore;
 
 pub struct Connection {
     config: Config,
     dispatcher: Arc<EventDispatcher>,
-    rpc_registry: Arc<RpcRegistry>,
     core: Arc<AgentCore>,
 }
 
@@ -23,10 +21,9 @@ impl Connection {
     pub fn new(
         config: Config,
         dispatcher: Arc<EventDispatcher>,
-        rpc_registry: Arc<RpcRegistry>,
         core: Arc<AgentCore>,
     ) -> Self {
-        Self { config, dispatcher, rpc_registry, core }
+        Self { config, dispatcher, core }
     }
 
     pub async fn run(&self) -> Result<()> {
@@ -59,7 +56,6 @@ impl Connection {
         let (ws_tx, ws_rx) = ws_stream.split();
         let (outgoing_tx, mut outgoing_rx) = mpsc::unbounded_channel::<String>();
 
-        // Send connect message
         let connect_msg = Message::VmConnect(VmConnect {
             agent_name: self.config.agent_name.clone(),
             internal_token: self.config.internal_token.clone(),
@@ -68,7 +64,6 @@ impl Connection {
         let json = connect_msg.to_json()?;
         outgoing_tx.send(json).map_err(|_| Error::Connection("Channel closed".into()))?;
 
-        // Spawn heartbeat task
         let heartbeat_tx = outgoing_tx.clone();
         let agent_name = self.config.agent_name.clone();
         let heartbeat_handle = tokio::spawn(async move {
@@ -101,7 +96,6 @@ impl Connection {
             }
         });
 
-        // Spawn sender task
         let sender_handle = tokio::spawn(async move {
             let mut tx = ws_tx;
             while let Some(json) = outgoing_rx.recv().await {
@@ -111,16 +105,11 @@ impl Connection {
             }
         });
 
-        let rpc_registry = self.rpc_registry.clone();
-        let response_tx = outgoing_tx.clone();
-
-        // Process incoming messages
         let result = async {
             let mut rx = ws_rx;
             while let Some(msg) = rx.next().await {
                 match msg {
                     Ok(WsMessage::Text(text)) => {
-                        // Try to parse as old protocol message first
                         if let Ok(message) = Message::from_json(&text) {
                             match message {
                                 Message::HostEvent(host_event) => {
@@ -132,14 +121,6 @@ impl Connection {
                                 _ => {
                                     tracing::warn!("Unexpected message type from manager");
                                 }
-                            }
-                        }
-                        // Try to parse as RPC request
-                        else if let Ok(rpc_request) = crate::rpc::RpcRequest::parse(&text) {
-                            tracing::debug!("Received RPC request: {}", rpc_request.method);
-                            let response = rpc_registry.dispatch(rpc_request).await;
-                            if let Ok(json) = response.to_json() {
-                                let _ = response_tx.send(json);
                             }
                         }
                     }

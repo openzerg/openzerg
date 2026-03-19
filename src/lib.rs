@@ -11,12 +11,11 @@ pub mod thinking;
 pub mod llm;
 pub mod file;
 pub mod storage;
-pub mod api_server;
 pub mod config;
 pub mod tool;
 pub mod vision;
 pub mod agent;
-pub mod rpc;
+pub mod grpc;
 
 pub use error::{Error, Result};
 pub use config::Config;

@@ -11,19 +11,19 @@ mod thinking;
 mod llm;
 mod file;
 mod storage;
-mod api_server;
 mod config;
 mod tool;
 mod vision;
 mod agent;
-mod rpc;
+mod grpc;
 
 use std::sync::Arc;
 use error::Result;
 use event::EventDispatcher;
 use config::Config;
 use agent::AgentCore;
-use rpc::RpcRegistry;
+use tonic::transport::Server;
+use grpc::{AgentGrpcServer, agent::agent_service_server::AgentServiceServer};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -38,6 +38,7 @@ async fn main() -> Result<()> {
     tracing::info!("LLM Base URL: {}", config.llm_base_url());
     tracing::info!("LLM Model: {}", config.llm_model());
     tracing::info!("API Port: {}", config.api_port());
+    tracing::info!("gRPC Port: {}", config.grpc_port());
     tracing::info!("Vision enabled: {}", config.vision_enabled());
 
     std::fs::create_dir_all(&config.workspace)?;
@@ -68,32 +69,21 @@ async fn main() -> Result<()> {
         }
     });
 
-    let rpc_registry = Arc::new(RpcRegistry::new());
-    rpc::handler::register_all_methods(&rpc_registry, core.clone()).await;
-    tracing::info!("RPC handlers registered");
-
-    let api_state = Arc::new(api_server::ApiState {
-        storage: core.storage.clone(),
-        session_manager: core.session_manager.clone(),
-        task_manager: core.task_manager.clone(),
-        process_manager: core.process_manager.clone(),
-        event_tx: core.event_tx.clone(),
-        tool_registry: core.tool_registry.clone(),
-        tool_executor: core.tool_executor.clone(),
-    });
-
-    let app = api_server::create_api_router(api_state);
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.api_port())).await?;
-    tracing::info!("API server listening on port {}", config.api_port());
+    let grpc_server = AgentServiceServer::new(AgentGrpcServer::new(
+        core.session_manager.clone(),
+        core.process_manager.clone(),
+        core.tool_registry.clone(),
+    ));
     
-    let api_handle = tokio::spawn(async move {
-        axum::serve(listener, app).await
-    });
-
+    let grpc_addr_str = format!("0.0.0.0:{}", config.grpc_port());
+    let grpc_addr: std::net::SocketAddr = grpc_addr_str.parse()
+        .map_err(|e| error::Error::Config(format!("Invalid gRPC address: {}", e)))?;
+    
+    tracing::info!("gRPC server listening on {}", grpc_addr);
+    
     let connection = connection::Connection::new(
         config,
         dispatcher.clone(),
-        rpc_registry,
         core,
     );
 
@@ -101,8 +91,10 @@ async fn main() -> Result<()> {
         result = connection.run() => {
             result?;
         }
-        result = api_handle => {
-            result??;
+        result = Server::builder()
+            .add_service(grpc_server)
+            .serve(grpc_addr) => {
+                result.map_err(|e| error::Error::Internal(e.to_string()))?;
         }
     }
 

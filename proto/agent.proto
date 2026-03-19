@@ -1,0 +1,214 @@
+syntax = "proto3";
+
+package agent;
+
+service AgentService {
+  // Session management
+  rpc ListSessions(ListSessionsRequest) returns (SessionListResponse);
+  rpc GetSession(GetSessionRequest) returns (SessionInfo);
+  rpc GetSessionMessages(GetSessionMessagesRequest) returns (MessageListResponse);
+  rpc SendSessionChat(SendSessionChatRequest) returns (Empty);
+  rpc InterruptSession(InterruptSessionRequest) returns (Empty);
+  rpc GetSessionContext(GetSessionContextRequest) returns (SessionContextResponse);
+
+  // Process management
+  rpc ListProcesses(ListProcessesRequest) returns (ProcessListResponse);
+  rpc GetProcess(GetProcessRequest) returns (ProcessInfo);
+  rpc GetProcessOutput(GetProcessOutputRequest) returns (ProcessOutputResponse);
+
+  // Task management
+  rpc ListTasks(ListTasksRequest) returns (TaskListResponse);
+  rpc GetTask(GetTaskRequest) returns (TaskInfo);
+
+  // Activity
+  rpc ListActivities(ListActivitiesRequest) returns (ActivityListResponse);
+
+  // Messages
+  rpc SendMessage(SendMessageRequest) returns (Empty);
+  rpc SendRemind(SendRemindRequest) returns (Empty);
+
+  // Builtin tools
+  rpc ListBuiltinTools(Empty) returns (BuiltinToolListResponse);
+  rpc ExecuteBuiltinTool(ExecuteBuiltinToolRequest) returns (ExecuteBuiltinToolResponse);
+
+  // Health check
+  rpc CheckHealth(Empty) returns (HealthResponse);
+}
+
+message Empty {}
+
+// Session types
+message SessionInfo {
+  string id = 1;
+  string purpose = 2;
+  string state = 3;
+  string created_at = 4;
+  int64 message_count = 5;
+}
+
+message SessionListResponse {
+  repeated SessionInfo sessions = 1;
+  int64 total = 2;
+}
+
+message ListSessionsRequest {
+  optional int64 offset = 1;
+  optional int64 limit = 2;
+}
+
+message GetSessionRequest {
+  string id = 1;
+}
+
+message GetSessionMessagesRequest {
+  string session_id = 1;
+  optional int64 offset = 2;
+  optional int64 limit = 3;
+}
+
+message MessageInfo {
+  string id = 1;
+  string session_id = 2;
+  string role = 3;
+  string content = 4;
+  string timestamp = 5;
+  string tool_calls_json = 6;
+}
+
+message MessageListResponse {
+  repeated MessageInfo messages = 1;
+  int64 total = 2;
+}
+
+message SendSessionChatRequest {
+  string session_id = 1;
+  string content = 2;
+}
+
+message InterruptSessionRequest {
+  string session_id = 1;
+  string message = 2;
+}
+
+message GetSessionContextRequest {
+  string session_id = 1;
+}
+
+message SessionContextResponse {
+  string context_json = 1;
+}
+
+// Process types
+message ProcessInfo {
+  string id = 1;
+  string command = 2;
+  string status = 3;
+  string started_at = 4;
+}
+
+message ProcessListResponse {
+  repeated ProcessInfo processes = 1;
+  int64 total = 2;
+}
+
+message ListProcessesRequest {
+  optional int64 offset = 1;
+  optional int64 limit = 2;
+}
+
+message GetProcessRequest {
+  string id = 1;
+}
+
+message GetProcessOutputRequest {
+  string process_id = 1;
+  optional string stream = 2;
+  optional int64 offset = 3;
+  optional int64 limit = 4;
+}
+
+message ProcessOutputResponse {
+  string content = 1;
+  int64 total_size = 2;
+}
+
+// Task types
+message TaskInfo {
+  string id = 1;
+  string content = 2;
+  string status = 3;
+  string priority = 4;
+  string created_at = 5;
+}
+
+message TaskListResponse {
+  repeated TaskInfo tasks = 1;
+  int64 total = 2;
+}
+
+message ListTasksRequest {
+  optional int64 offset = 1;
+  optional int64 limit = 2;
+}
+
+message GetTaskRequest {
+  string id = 1;
+}
+
+// Activity types
+message ActivityInfo {
+  string id = 1;
+  string activity_type = 2;
+  string description = 3;
+  string timestamp = 4;
+}
+
+message ActivityListResponse {
+  repeated ActivityInfo activities = 1;
+  int64 total = 2;
+}
+
+message ListActivitiesRequest {
+  optional int64 offset = 1;
+  optional int64 limit = 2;
+}
+
+// Message types
+message SendMessageRequest {
+  string content = 1;
+}
+
+message SendRemindRequest {
+  string message = 1;
+}
+
+// Builtin tools
+message BuiltinToolInfo {
+  string name = 1;
+  string description = 2;
+  string parameters_json = 3;
+}
+
+message BuiltinToolListResponse {
+  repeated BuiltinToolInfo tools = 1;
+}
+
+message ExecuteBuiltinToolRequest {
+  string tool_name = 1;
+  string args_json = 2;
+  optional string session_id = 3;
+}
+
+message ExecuteBuiltinToolResponse {
+  string title = 1;
+  string output = 2;
+  string metadata_json = 3;
+  string attachments_json = 4;
+  bool truncated = 5;
+}
+
+// Health
+message HealthResponse {
+  bool healthy = 1;
+  string version = 2;
+}

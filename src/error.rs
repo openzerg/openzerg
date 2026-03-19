@@ -44,6 +44,9 @@ pub enum Error {
     #[error("Config error: {0}")]
     Config(String),
 
+    #[error("Internal error: {0}")]
+    Internal(String),
+
     #[error("SSE channel closed")]
     SseChannelClosed,
 
