@@ -36,6 +36,16 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    systemd.slices.openzerg = {
+      description = "Slice for OpenZerg agent processes";
+      before = [ "slices.target" ];
+      sliceConfig = {
+        MemoryMax = "2G";
+        TasksMax = 500;
+        CPUQuota = "80%";
+      };
+    };
+
     systemd.services.openzerg = {
       description = "OpenZerg Agent - ${cfg.agentName}";
       wantedBy = [ "multi-user.target" ];

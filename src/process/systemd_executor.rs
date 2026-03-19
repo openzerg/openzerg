@@ -10,17 +10,6 @@ const DEFAULT_MEMORY_MAX: &str = "512M";
 const DEFAULT_TASKS_MAX: u32 = 100;
 const OUTPUT_LIMIT: u64 = 10 * 1024 * 1024;
 
-const OPENZERG_SLICE: &str = r#"[Unit]
-Description=Slice for OpenZerg agent processes
-DefaultDependencies=no
-Before=slices.target
-
-[Slice]
-MemoryMax=2G
-TasksMax=500
-CPUQuota=80%
-"#;
-
 pub struct SystemdExecutor {
     run_dir: PathBuf,
     slice: String,
@@ -35,23 +24,8 @@ impl SystemdExecutor {
     }
     
     pub async fn ensure_slice(&self) -> Result<()> {
-        let slice_path = "/etc/systemd/system/openzerg.slice";
-        
-        if !std::path::Path::new(slice_path).exists() {
-            tokio::fs::write(slice_path, OPENZERG_SLICE).await
-                .map_err(|e| Error::Process(format!("Failed to write slice file: {}", e)))?;
-            
-            let status = tokio::process::Command::new("systemctl")
-                .args(["daemon-reload"])
-                .status()
-                .await
-                .map_err(|e| Error::Process(format!("Failed to reload systemd: {}", e)))?;
-            
-            if !status.success() {
-                tracing::warn!("systemctl daemon-reload failed");
-            }
-        }
-        
+        // Slice is pre-configured by NixOS module, skip runtime creation
+        // This avoids writing to read-only /etc in NixOS containers
         Ok(())
     }
     
