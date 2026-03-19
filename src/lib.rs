@@ -16,6 +16,7 @@ pub mod config;
 pub mod tool;
 pub mod vision;
 pub mod agent;
+pub mod rpc;
 
 pub use error::{Error, Result};
 pub use config::Config;
