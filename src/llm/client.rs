@@ -3,24 +3,41 @@ use tokio_stream::StreamExt;
 use futures_util::Stream;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use serde::Deserialize;
 use crate::error::{Error, Result};
 use super::types::{Message, ChatCompletionRequest, ChatCompletionResponse, ChatCompletionResponse as Response};
 
-pub struct LLMClient {
-    client: Client,
+struct LLMConfig {
     base_url: String,
     api_key: String,
     model: String,
+}
+
+pub struct LLMClient {
+    client: Client,
+    config: Arc<RwLock<LLMConfig>>,
 }
 
 impl LLMClient {
     pub fn new(base_url: String, api_key: String, model: String) -> Self {
         Self {
             client: Client::new(),
-            base_url,
-            api_key,
-            model,
+            config: Arc::new(RwLock::new(LLMConfig { base_url, api_key, model })),
+        }
+    }
+
+    pub async fn update_config(&self, base_url: Option<String>, api_key: Option<String>, model: Option<String>) {
+        let mut config = self.config.write().await;
+        if let Some(url) = base_url {
+            config.base_url = url;
+        }
+        if let Some(key) = api_key {
+            config.api_key = key;
+        }
+        if let Some(m) = model {
+            config.model = m;
         }
     }
 
@@ -37,18 +54,21 @@ impl LLMClient {
         messages: Vec<Message>,
         tools: Vec<super::types::ToolDefinition>,
     ) -> Result<ChatCompletionResponse> {
+        let config = self.config.read().await;
         let request = ChatCompletionRequest {
-            model: self.model.clone(),
+            model: config.model.clone(),
             messages,
             tools: Some(tools),
             stream: None,
         };
 
-        let url = format!("{}/chat/completions", self.base_url);
+        let url = format!("{}/chat/completions", config.base_url);
+        let api_key = config.api_key.clone();
+        drop(config);
         
         let response = self.client
             .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
             .json(&request)
             .send()
@@ -66,12 +86,19 @@ impl LLMClient {
     }
 
     pub fn stream(&self, messages: Vec<Message>) -> impl Stream<Item = Result<StreamChunk>> {
-        let url = format!("{}/chat/completions", self.base_url);
-        let api_key = self.api_key.clone();
-        let model = self.model.clone();
+        let config = self.config.clone();
         let client = self.client.clone();
 
         async_stream::try_stream! {
+            let (url, api_key, model) = {
+                let cfg = config.read().await;
+                (
+                    format!("{}/chat/completions", cfg.base_url),
+                    cfg.api_key.clone(),
+                    cfg.model.clone()
+                )
+            };
+
             let request = ChatCompletionRequest {
                 model,
                 messages,
@@ -121,18 +148,21 @@ impl LLMClient {
     }
 
     async fn send_request(&self, messages: Vec<Message>, stream: bool) -> Result<ChatCompletionResponse> {
+        let config = self.config.read().await;
         let request = ChatCompletionRequest {
-            model: self.model.clone(),
+            model: config.model.clone(),
             messages,
             tools: None,
             stream: if stream { Some(true) } else { None },
         };
 
-        let url = format!("{}/chat/completions", self.base_url);
+        let url = format!("{}/chat/completions", config.base_url);
+        let api_key = config.api_key.clone();
+        drop(config);
         
         let response = self.client
             .post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
             .json(&request)
             .send()

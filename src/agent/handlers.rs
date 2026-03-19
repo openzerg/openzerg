@@ -228,14 +228,16 @@ impl AgentCore {
         llm_model: Option<String>,
     ) {
         tracing::info!("Config update received");
-        if let Some(url) = llm_base_url {
+        if let Some(url) = &llm_base_url {
             tracing::info!("  LLM Base URL: {}", url);
         }
-        if let Some(key) = llm_api_key {
+        if let Some(key) = &llm_api_key {
             tracing::info!("  LLM API Key: {}...", &key[..8.min(key.len())]);
         }
-        if let Some(model) = llm_model {
+        if let Some(model) = &llm_model {
             tracing::info!("  LLM Model: {}", model);
         }
+        
+        self.llm_client.update_config(llm_base_url, llm_api_key, llm_model).await;
     }
 }
