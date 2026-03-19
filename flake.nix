@@ -13,7 +13,7 @@
         pkgs = import nixpkgs { inherit system; };
         craneLib = crane.mkLib pkgs;
 
-        src = craneLib.cleanCargoSource ./.;
+        src = pkgs.lib.cleanSource ./.;
 
         commonArgs = {
           inherit src;
