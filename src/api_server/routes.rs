@@ -16,6 +16,7 @@ pub fn create_api_router(state: Arc<ApiState>) -> Router {
         .route("/api/sessions/{id}/messages", get(get_session_messages))
         .route("/api/sessions/{id}/chat", post(send_to_session))
         .route("/api/sessions/{id}/interrupt", post(interrupt_session))
+        .route("/api/sessions/{id}/context", get(get_session_context))
         .route("/api/processes", get(list_processes))
         .route("/api/processes/{id}", get(get_process))
         .route("/api/processes/{id}/output", get(get_process_output))

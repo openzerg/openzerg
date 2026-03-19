@@ -392,3 +392,58 @@ pub async fn execute_tool(
         },
     }
 }
+
+pub async fn get_session_context(
+    State(state): State<Arc<ApiState>>,
+    Path(id): Path<String>,
+) -> impl axum::response::IntoResponse {
+    let session = state.storage.load_sessions().await
+        .ok()
+        .and_then(|sessions| sessions.into_iter().find(|s| s.id == id));
+    
+    let session = match session {
+        Some(s) => s,
+        None => return ApiResponse::<serde_json::Value> {
+            success: false,
+            data: None,
+            error: Some("Session not found".to_string()),
+        },
+    };
+    
+    let messages = state.storage.load_messages(Some(&id)).await.unwrap_or_default();
+    
+    let tool_results = state.storage.get_tool_results(&id).await.unwrap_or_default();
+    
+    let processes = state.storage.load_processes().await
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|p| p.session_id == id)
+        .collect::<Vec<_>>();
+    
+    let activities = state.storage.load_activities(Some(&id)).await.unwrap_or_default();
+    
+    let tasks = state.storage.load_tasks().await
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|t| t.session_id.as_deref() == Some(id.as_str()))
+        .collect::<Vec<_>>();
+    
+    let tool_calls: Vec<_> = messages.iter()
+        .filter_map(|m| m.tool_calls.clone())
+        .flatten()
+        .collect();
+    
+    ApiResponse::<serde_json::Value> {
+        success: true,
+        data: Some(serde_json::json!({
+            "session": session,
+            "messages": messages,
+            "tool_calls": tool_calls,
+            "tool_results": tool_results,
+            "processes": processes,
+            "activities": activities,
+            "tasks": tasks,
+        })),
+        error: None,
+    }
+}
