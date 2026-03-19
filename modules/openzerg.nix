@@ -37,8 +37,9 @@ in
       };
 
       apiKey = lib.mkOption {
-        type = lib.types.str;
-        description = "LLM API key";
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "LLM API key (can be set via environment)";
       };
 
       model = lib.mkOption {
@@ -66,9 +67,10 @@ in
         INTERNAL_TOKEN = cfg.internalToken;
         WORKSPACE = cfg.workspace;
         LLM_BASE_URL = cfg.llm.baseUrl;
-        LLM_API_KEY = cfg.llm.apiKey;
         LLM_MODEL = cfg.llm.model;
         RUST_LOG = "info";
+      } // lib.optionalAttrs (cfg.llm.apiKey != null) {
+        LLM_API_KEY = cfg.llm.apiKey;
       };
 
       path = with pkgs; [
