@@ -16,12 +16,14 @@ mod config;
 mod tool;
 mod vision;
 mod agent;
+mod rpc;
 
 use std::sync::Arc;
 use error::Result;
 use event::EventDispatcher;
 use config::Config;
 use agent::AgentCore;
+use rpc::RpcRegistry;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -66,6 +68,10 @@ async fn main() -> Result<()> {
         }
     });
 
+    let rpc_registry = Arc::new(RpcRegistry::new());
+    rpc::handler::register_all_methods(&rpc_registry, core.clone()).await;
+    tracing::info!("RPC handlers registered");
+
     let api_state = Arc::new(api_server::ApiState {
         storage: core.storage.clone(),
         session_manager: core.session_manager.clone(),
@@ -84,7 +90,12 @@ async fn main() -> Result<()> {
         axum::serve(listener, app).await
     });
 
-    let connection = connection::Connection::new(config, dispatcher.clone());
+    let connection = connection::Connection::new(
+        config,
+        dispatcher.clone(),
+        rpc_registry,
+        core,
+    );
 
     tokio::select! {
         result = connection.run() => {
