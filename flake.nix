@@ -17,7 +17,7 @@
 
         commonArgs = {
           inherit src;
-          nativeBuildInputs = [ pkgs.pkg-config ];
+          nativeBuildInputs = [ pkgs.pkg-config pkgs.protobuf ];
           buildInputs = with pkgs; [ openssl ];
         };
 
@@ -46,6 +46,7 @@
             rust-analyzer
             cargo-watch
             cargo-llvm-cov
+            protobuf
           ];
           shellHook = ''
             export LLVM_COV="${pkgs.llvmPackages_19.llvm}/bin/llvm-cov"
