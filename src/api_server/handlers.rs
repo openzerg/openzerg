@@ -524,8 +524,8 @@ pub async fn session_events(
                                 child_session_type, child_session_id, parent_session_id, status, summary
                             ))
                         }
-                        AgentEvent::SessionTask { session_id, task, context: _ } => {
-                            SseEvent::thinking(&format!("[SessionTask] {} -> {}", session_id, task))
+                        AgentEvent::SessionTask { session_id: _, task, context: _ } => {
+                            SseEvent::thinking(&format!("Task: {}", task))
                         }
                         AgentEvent::UserMessage { .. } => {
                             continue;
