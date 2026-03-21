@@ -155,7 +155,6 @@ impl AgentCore {
         tracing::info!("Message from {}: {}", from, content);
         
         if let Some(main) = self.session_manager.get_main().await {
-            tracing::info!("Got main session: {}", main.id);
             let msg = crate::storage::StoredMessage {
                 id: uuid::Uuid::new_v4().to_string(),
                 session_id: main.id.clone(),
@@ -164,12 +163,7 @@ impl AgentCore {
                 timestamp: chrono::Utc::now(),
                 tool_calls: None,
             };
-            match self.storage.save_message(&msg).await {
-                Ok(_) => tracing::info!("Saved message to session {}", main.id),
-                Err(e) => tracing::error!("Failed to save message: {}", e),
-            }
-        } else {
-            tracing::error!("No main session found!");
+            self.storage.save_message(&msg).await.ok();
         }
         
         let activity = crate::storage::StoredActivity {
