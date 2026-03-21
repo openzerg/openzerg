@@ -96,10 +96,8 @@
             
             eventSource.addEventListener('thinking', (e) => {
                 const data = JSON.parse(e.data);
-                // Only show thinking for current session or if session_id matches
-                if (!data.session_id || data.session_id === currentSessionId) {
-                    appendThinking(data.content);
-                }
+                // Show thinking for all sessions (including Dispatcher analysis)
+                appendThinking(data.content);
             });
             
             eventSource.addEventListener('tool_call', (e) => {
@@ -114,7 +112,7 @@
             
             eventSource.addEventListener('response', (e) => {
                 const data = JSON.parse(e.data);
-                // Only show response for current session or if session_id matches
+                // Only show response for current session
                 if (!data.session_id || data.session_id === currentSessionId) {
                     appendResponse(data.content);
                 }
@@ -153,7 +151,12 @@
                 thinkingDiv.innerHTML = '<div class="flex items-center gap-2 px-4 py-2.5 border-b border-yellow-500/20"><span class="text-xs font-semibold text-yellow-500 uppercase tracking-wider">Thinking</span><span class="text-xs text-muted thinking-hint"> (live)</span></div><div class="px-4 py-3"><div class="text-sm text-text leading-relaxed thinking-content whitespace-pre-wrap font-mono"></div></div>';
                 messages.appendChild(thinkingDiv);
             }
-            thinkingDiv.querySelector('.thinking-content').textContent += content;
+            const contentDiv = thinkingDiv.querySelector('.thinking-content');
+            if (contentDiv.textContent.length > 0) {
+                contentDiv.textContent += ' | ' + content;
+            } else {
+                contentDiv.textContent = content;
+            }
             messages.scrollTop = messages.scrollHeight;
         }
         
