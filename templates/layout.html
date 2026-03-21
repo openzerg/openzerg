@@ -114,6 +114,11 @@
                 appendResponse(data.content);
             });
             
+            eventSource.addEventListener('user_message', (e) => {
+                const data = JSON.parse(e.data);
+                appendUserMessage(data.content);
+            });
+            
             eventSource.addEventListener('done', (e) => {
                 const data = JSON.parse(e.data);
                 markComplete(data.session_id);
@@ -143,11 +148,11 @@
             let thinkingDiv = messages.querySelector('.thinking.active-thinking');
             if (!thinkingDiv) {
                 thinkingDiv = document.createElement('div');
-                thinkingDiv.className = 'message thinking active-thinking';
-                thinkingDiv.innerHTML = '<div class="role">Thinking<span class="toggle-hint"> (live)</span></div><div class="content"></div>';
+                thinkingDiv.className = 'rounded-xl border bg-surface border-l-4 border-l-yellow-500 thinking active-thinking';
+                thinkingDiv.innerHTML = '<div class="flex items-center gap-2 px-4 py-2.5 border-b border-yellow-500/20"><span class="text-xs font-semibold text-yellow-500 uppercase tracking-wider">Thinking</span><span class="text-xs text-muted thinking-hint"> (live)</span></div><div class="px-4 py-3"><div class="text-sm text-text leading-relaxed thinking-content whitespace-pre-wrap font-mono"></div></div>';
                 messages.appendChild(thinkingDiv);
             }
-            thinkingDiv.querySelector('.content').textContent += content;
+            thinkingDiv.querySelector('.thinking-content').textContent += content;
             messages.scrollTop = messages.scrollHeight;
         }
         
@@ -173,27 +178,40 @@
         
         function appendResponse(content) {
             const messages = document.getElementById('messages');
+            
+            // Remove active thinking indicator
             const thinking = messages.querySelector('.thinking.active-thinking');
             if (thinking) {
                 thinking.classList.remove('active-thinking');
                 thinking.classList.add('collapsed');
-                const roleDiv = thinking.querySelector('.role');
-                roleDiv.innerHTML = 'Thinking<span class="toggle-hint"> (click to expand)</span>';
-                roleDiv.onclick = function() {
+                const roleDiv = thinking.querySelector('.thinking-hint');
+                if (roleDiv) {
+                    roleDiv.textContent = ' (click to expand)';
+                }
+                thinking.querySelector('.thinking-toggle')?.addEventListener('click', function() {
                     thinking.classList.toggle('collapsed');
-                    const hint = roleDiv.querySelector('.toggle-hint');
-                    if (thinking.classList.contains('collapsed')) {
-                        hint.textContent = ' (click to expand)';
-                    } else {
-                        hint.textContent = ' (click to collapse)';
+                    const hint = this.querySelector('.thinking-hint');
+                    if (hint) {
+                        hint.textContent = thinking.classList.contains('collapsed') ? '(click to expand)' : '(click to collapse)';
                     }
-                };
+                });
             }
             
+            // Add assistant response
             const div = document.createElement('div');
-            div.className = 'message assistant';
-            div.innerHTML = '<div class="role">Assistant</div><div class="content">' + 
-                escapeHtml(content) + '</div>';
+            div.className = 'rounded-xl border bg-surface border-border';
+            div.innerHTML = '<div class="flex items-center gap-2 px-4 py-2.5 border-b border-border"><span class="text-xs font-semibold text-accent uppercase tracking-wider">Assistant</span></div><div class="px-4 py-3"><div class="text-sm text-text leading-relaxed whitespace-pre-wrap font-mono">' + 
+                escapeHtml(content) + '</div></div>';
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        function appendUserMessage(content) {
+            const messages = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.className = 'rounded-xl border bg-primary/5 border-primary/20';
+            div.innerHTML = '<div class="flex items-center gap-2 px-4 py-2.5 border-b border-primary/10"><span class="text-xs font-semibold text-primary uppercase tracking-wider">User</span></div><div class="px-4 py-3"><div class="text-sm text-text leading-relaxed whitespace-pre-wrap font-mono">' + 
+                escapeHtml(content) + '</div></div>';
             messages.appendChild(div);
             messages.scrollTop = messages.scrollHeight;
         }
@@ -221,6 +239,44 @@
         
         function switchSession(sessionId) {
             window.location.href = '/ui/sessions/' + sessionId;
+        }
+        
+        async function sendMessage(event, sessionId) {
+            event.preventDefault();
+            const input = document.getElementById('message-input');
+            const sendBtn = document.getElementById('send-btn');
+            const content = input.value.trim();
+            if (!content) return;
+            
+            // Disable input and button while sending
+            input.disabled = true;
+            sendBtn.disabled = true;
+            sendBtn.classList.add('opacity-50');
+            
+            try {
+                const response = await fetch('/api/sessions/' + sessionId + '/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: content })
+                });
+                
+                if (response.ok) {
+                    // Clear input - SSE will add the message to UI
+                    input.value = '';
+                } else {
+                    console.error('Failed to send message:', response.status);
+                    input.value = content; // Restore content on error
+                }
+            } catch (err) {
+                console.error('Error sending message:', err);
+                input.value = content; // Restore content on error
+            } finally {
+                // Re-enable input and button
+                input.disabled = false;
+                sendBtn.disabled = false;
+                sendBtn.classList.remove('opacity-50');
+                input.focus();
+            }
         }
     </script>
     {% block scripts %}{% endblock %}

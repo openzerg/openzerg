@@ -18,6 +18,7 @@ pub enum SseEventData {
     ToolCall { tool: String, args: serde_json::Value },
     ToolResult { content: String },
     Response { content: String },
+    UserMessage { content: String },
     Done { session_id: String },
     Error { message: String },
 }
@@ -64,6 +65,15 @@ impl SseEvent {
         Self {
             event_type: "response",
             data: SseEventData::Response {
+                content: content.to_string(),
+            },
+        }
+    }
+
+    pub fn user_message(content: &str) -> Self {
+        Self {
+            event_type: "user_message",
+            data: SseEventData::UserMessage {
                 content: content.to_string(),
             },
         }

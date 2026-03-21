@@ -469,7 +469,11 @@ pub async fn session_events(
                 Ok(event) => {
                     let sse_event = match event {
                         AgentEvent::Message { content, from } => {
-                            SseEvent::response(&format!("[{}] {}", from, content))
+                            if from == "user" {
+                                SseEvent::user_message(&content)
+                            } else {
+                                SseEvent::response(&format!("[{}] {}", from, content))
+                            }
                         }
                         AgentEvent::Query { query_id, question } => {
                             SseEvent::response(&format!("[Query {}] {}", query_id, question))
