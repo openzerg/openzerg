@@ -104,6 +104,12 @@ impl AgentCore {
 
     pub async fn init(&self) -> Result<()> {
         self.storage.init().await?;
+        
+        let fixed = self.storage.fix_session_states().await.unwrap_or(0);
+        if fixed > 0 {
+            tracing::info!("Fixed {} stale session states", fixed);
+        }
+        
         self.session_manager.init_main().await;
         self.ensure_workspace_structure().await?;
         self.register_tools().await;

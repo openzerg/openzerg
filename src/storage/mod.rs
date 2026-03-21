@@ -470,6 +470,22 @@ impl Storage {
             .await?;
         Ok(())
     }
+
+    pub async fn fix_session_states(&self) -> Result<usize> {
+        let now = chrono::Utc::now().to_rfc3339();
+        let result = sqlx::query(r#"
+            UPDATE sessions 
+            SET state = 'Completed', finished_at = ?
+            WHERE purpose = 'Query' 
+              AND state = 'Generating' 
+              AND message_count >= 2
+        "#)
+        .bind(&now)
+        .execute(self.pool())
+        .await?;
+        
+        Ok(result.rows_affected() as usize)
+    }
 }
 
 #[cfg(test)]
