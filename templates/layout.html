@@ -140,6 +140,28 @@
             background: #1a1a2e;
             border-left: 3px solid #fbbf24;
         }
+        .message.thinking .role {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .message.thinking .role::after {
+            content: '▼';
+            font-size: 0.625rem;
+            transition: transform 0.2s;
+        }
+        .message.thinking.collapsed .role::after {
+            transform: rotate(-90deg);
+        }
+        .message.thinking.collapsed .content {
+            display: none;
+        }
+        .message.thinking .toggle-hint {
+            font-size: 0.625rem;
+            color: #64748b;
+            font-weight: 400;
+        }
         .message .role {
             font-size: 0.75rem;
             color: #94a3b8;
@@ -371,11 +393,11 @@
         
         function appendThinking(content) {
             const messages = document.getElementById('messages');
-            let thinkingDiv = messages.querySelector('.thinking:last-child');
+            let thinkingDiv = messages.querySelector('.thinking.active-thinking');
             if (!thinkingDiv) {
                 thinkingDiv = document.createElement('div');
-                thinkingDiv.className = 'message thinking';
-                thinkingDiv.innerHTML = '<div class="role">Thinking</div><div class="content"></div>';
+                thinkingDiv.className = 'message thinking active-thinking';
+                thinkingDiv.innerHTML = '<div class="role">Thinking<span class="toggle-hint"> (live)</span></div><div class="content"></div>';
                 messages.appendChild(thinkingDiv);
             }
             thinkingDiv.querySelector('.content').textContent += content;
@@ -404,9 +426,22 @@
         
         function appendResponse(content) {
             const messages = document.getElementById('messages');
-            // Remove thinking message if exists
-            const thinking = messages.querySelector('.thinking:last-child');
-            if (thinking) thinking.remove();
+            const thinking = messages.querySelector('.thinking.active-thinking');
+            if (thinking) {
+                thinking.classList.remove('active-thinking');
+                thinking.classList.add('collapsed');
+                const roleDiv = thinking.querySelector('.role');
+                roleDiv.innerHTML = 'Thinking<span class="toggle-hint"> (click to expand)</span>';
+                roleDiv.onclick = function() {
+                    thinking.classList.toggle('collapsed');
+                    const hint = roleDiv.querySelector('.toggle-hint');
+                    if (thinking.classList.contains('collapsed')) {
+                        hint.textContent = ' (click to expand)';
+                    } else {
+                        hint.textContent = ' (click to collapse)';
+                    }
+                };
+            }
             
             const div = document.createElement('div');
             div.className = 'message assistant';

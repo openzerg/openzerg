@@ -53,8 +53,8 @@
 {% block content %}
 <div class="messages" id="messages">
     {% for msg in messages %}
-    <div class="message {{ msg.role|lower }}">
-        <div class="role">{{ msg.role }}</div>
+    <div class="message {{ msg.role|lower }}{% if msg.role == "Thinking" %} collapsed{% endif %}">
+        <div class="role">{% if msg.role == "Thinking" %}Thinking<span class="toggle-hint"> (click to expand)</span>{% else %}{{ msg.role }}{% endif %}</div>
         <div class="content">{{ msg.content }}</div>
     </div>
     {% endfor %}
@@ -124,6 +124,20 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.message.thinking .role').forEach(function(roleDiv) {
+            roleDiv.onclick = function() {
+                const msgDiv = this.closest('.message');
+                msgDiv.classList.toggle('collapsed');
+                const hint = this.querySelector('.toggle-hint');
+                if (hint) {
+                    if (msgDiv.classList.contains('collapsed')) {
+                        hint.textContent = ' (click to expand)';
+                    } else {
+                        hint.textContent = ' (click to collapse)';
+                    }
+                }
+            };
+        });
         connectSSE('{{ session_id }}');
     });
 </script>

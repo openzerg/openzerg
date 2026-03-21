@@ -42,7 +42,7 @@ pub struct ConfigForm {
 pub async fn dashboard(
     State(state): State<Arc<ApiState>>,
 ) -> Html<String> {
-    let sessions = state.storage.load_sessions().await.unwrap_or_default();
+    let sessions = state.storage.load_visible_sessions().await.unwrap_or_default();
     let main_session = sessions.iter().find(|s| s.purpose == "Main");
     let active_count = sessions.iter().filter(|s| 
         s.state != "Completed" && s.state != "Failed" && s.state != "Cancelled"
@@ -65,7 +65,7 @@ pub async fn session_detail(
     Path(id): Path<String>,
     State(state): State<Arc<ApiState>>,
 ) -> Html<String> {
-    let sessions = state.storage.load_sessions().await.unwrap_or_default();
+    let sessions = state.storage.load_visible_sessions().await.unwrap_or_default();
     let session = sessions.iter().find(|s| s.id == id);
     
     let session_purpose = session.map(|s| s.purpose.as_str()).unwrap_or("Unknown").to_string();
