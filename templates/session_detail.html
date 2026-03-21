@@ -63,6 +63,16 @@
 {% endblock %}
 
 {% block content %}
+{% if !system_prompt.is_empty() %}
+<div class="system-prompt collapsed">
+    <div class="prompt-header" onclick="this.parentElement.classList.toggle('collapsed')">
+        <span class="prompt-title">System Prompt</span>
+        <span class="toggle-icon">▼</span>
+    </div>
+    <div class="prompt-content">{{ system_prompt }}</div>
+</div>
+{% endif %}
+
 <div class="messages" id="messages">
     {% for msg in messages %}
     <div class="message {{ msg.role|lower }}{% if msg.role == "Thinking" %} collapsed{% endif %}">

@@ -71,6 +71,7 @@ pub async fn session_detail(
     let session_purpose = session.map(|s| s.purpose.as_str()).unwrap_or("Unknown").to_string();
     let session_state = session.map(|s| s.state.as_str()).unwrap_or("Unknown").to_string();
     let session_id_short = short_id(&id);
+    let system_prompt = session.map(|s| s.system_prompt.clone()).unwrap_or_default();
     
     let stored_messages = state.storage.load_messages(Some(&id)).await.unwrap_or_default();
     let messages: Vec<_> = stored_messages.iter().map(MessageView::from_stored).collect();
@@ -118,6 +119,7 @@ pub async fn session_detail(
         session_id_short,
         session_purpose,
         session_state,
+        system_prompt,
         messages,
         main_session_id,
         main_session_id_short,

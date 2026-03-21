@@ -60,7 +60,8 @@ impl Storage {
                 finished_at TEXT,
                 task_id TEXT,
                 query_id TEXT,
-                message_count INTEGER DEFAULT 0
+                message_count INTEGER DEFAULT 0,
+                system_prompt TEXT NOT NULL DEFAULT ''
             );
             
             CREATE TABLE IF NOT EXISTS messages (
@@ -150,15 +151,16 @@ impl Storage {
 
     pub async fn save_session(&self, session: &StoredSession) -> Result<()> {
         sqlx::query(r#"
-            INSERT INTO sessions (id, purpose, state, created_at, started_at, finished_at, task_id, query_id, message_count)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO sessions (id, purpose, state, created_at, started_at, finished_at, task_id, query_id, message_count, system_prompt)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 state = excluded.state,
                 started_at = excluded.started_at,
                 finished_at = excluded.finished_at,
                 task_id = excluded.task_id,
                 query_id = excluded.query_id,
-                message_count = excluded.message_count
+                message_count = excluded.message_count,
+                system_prompt = excluded.system_prompt
         "#)
         .bind(&session.id)
         .bind(&session.purpose)
@@ -169,6 +171,7 @@ impl Storage {
         .bind(&session.task_id)
         .bind(&session.query_id)
         .bind(session.message_count as i32)
+        .bind(&session.system_prompt)
         .execute(self.pool())
         .await?;
         
@@ -567,6 +570,7 @@ mod tests {
             task_id: None,
             query_id: None,
             message_count: 0,
+            system_prompt: String::new(),
         };
         
         storage.save_session(&session).await.unwrap();
@@ -592,6 +596,7 @@ mod tests {
             task_id: None,
             query_id: None,
             message_count: 0,
+            system_prompt: String::new(),
         };
         storage.save_session(&session).await.unwrap();
         

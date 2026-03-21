@@ -23,6 +23,7 @@ pub struct SessionDetailTemplate {
     pub session_id_short: String,
     pub session_purpose: String,
     pub session_state: String,
+    pub system_prompt: String,
     pub messages: Vec<MessageView>,
     pub main_session_id: String,
     pub main_session_id_short: String,

@@ -13,6 +13,7 @@ pub struct StoredSession {
     pub task_id: Option<String>,
     pub query_id: Option<String>,
     pub message_count: usize,
+    pub system_prompt: String,
 }
 
 #[derive(Debug, Clone, FromRow)]
@@ -26,6 +27,7 @@ pub struct StoredSessionRow {
     pub task_id: Option<String>,
     pub query_id: Option<String>,
     pub message_count: i32,
+    pub system_prompt: String,
 }
 
 impl From<StoredSessionRow> for StoredSession {
@@ -50,6 +52,7 @@ impl From<StoredSessionRow> for StoredSession {
             task_id: row.task_id,
             query_id: row.query_id,
             message_count: row.message_count as usize,
+            system_prompt: row.system_prompt,
         }
     }
 }
