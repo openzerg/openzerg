@@ -94,6 +94,7 @@ impl EventDispatcher {
             AgentEvent::Error { .. } => (true, None),
             AgentEvent::SubSessionResult { .. } => (true, None),
             AgentEvent::SessionTask { .. } => (true, None),
+            AgentEvent::UserMessage { .. } => (true, None),
         };
 
         Ok(Message::VmEventAck(VmEventAck {

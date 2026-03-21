@@ -142,6 +142,10 @@ pub enum AgentEvent {
         task: String,
         context: Option<serde_json::Value>,
     },
+
+    UserMessage {
+        content: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

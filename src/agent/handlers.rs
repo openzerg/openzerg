@@ -47,6 +47,7 @@ impl AgentCore {
             AgentEvent::Done { .. } => {}
             AgentEvent::Error { .. } => {}
             AgentEvent::SubSessionResult { .. } => {}
+            AgentEvent::UserMessage { .. } => {}
         }
     }
 
@@ -171,6 +172,8 @@ impl AgentCore {
                 tool_calls: None,
             };
             self.storage.save_message(&msg).await.ok();
+            
+            let _ = self.event_tx.send(AgentEvent::UserMessage { content: content.clone() });
         }
         
         let activity = crate::storage::StoredActivity {
