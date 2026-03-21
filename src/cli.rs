@@ -890,32 +890,21 @@ async fn check_status(url: &str) -> anyhow::Result<()> {
 async fn ensure_main_session(state: &std::sync::Arc<crate::api_server::ApiState>) -> anyhow::Result<()> {
     let sessions = state.storage.load_sessions().await?;
     
-    if sessions.iter().any(|s| s.purpose == "Main") {
-        tracing::info!("Main session already exists");
+    let main_exists = sessions.iter().any(|s| s.purpose == "Main");
+    let dispatcher_exists = sessions.iter().any(|s| s.purpose == "Dispatcher");
+    let worker_exists = sessions.iter().any(|s| s.purpose == "Worker");
+    
+    if main_exists && dispatcher_exists && worker_exists {
+        tracing::info!("Main, Dispatcher, and Worker sessions already exist");
         return Ok(());
     }
     
-    let id = state.session_manager.init_main().await;
-    
-    let session = crate::storage::StoredSession {
-        id: id.clone(),
-        purpose: "Main".to_string(),
-        state: "Idle".to_string(),
-        created_at: chrono::Utc::now(),
-        started_at: None,
-        finished_at: None,
-        task_id: None,
-        query_id: None,
-        message_count: 0,
-    };
-    state.storage.save_session(&session).await?;
-    
-    tracing::info!("Created Main session: {}", id);
-    
-    if let Some(dispatcher) = state.session_manager.get_dispatcher().await {
+    if !main_exists {
+        let id = state.session_manager.init_main().await;
+        
         let session = crate::storage::StoredSession {
-            id: dispatcher.id.clone(),
-            purpose: "Dispatcher".to_string(),
+            id: id.clone(),
+            purpose: "Main".to_string(),
             state: "Idle".to_string(),
             created_at: chrono::Utc::now(),
             started_at: None,
@@ -925,23 +914,44 @@ async fn ensure_main_session(state: &std::sync::Arc<crate::api_server::ApiState>
             message_count: 0,
         };
         state.storage.save_session(&session).await?;
-        tracing::info!("Created Dispatcher session: {}", dispatcher.id);
+        
+        tracing::info!("Created Main session: {}", id);
     }
     
-    if let Some(worker) = state.session_manager.get_worker().await {
-        let session = crate::storage::StoredSession {
-            id: worker.id.clone(),
-            purpose: "Worker".to_string(),
-            state: "Idle".to_string(),
-            created_at: chrono::Utc::now(),
-            started_at: None,
-            finished_at: None,
-            task_id: None,
-            query_id: None,
-            message_count: 0,
-        };
-        state.storage.save_session(&session).await?;
-        tracing::info!("Created Worker session: {}", worker.id);
+    if !dispatcher_exists {
+        if let Some(dispatcher) = state.session_manager.get_dispatcher().await {
+            let session = crate::storage::StoredSession {
+                id: dispatcher.id.clone(),
+                purpose: "Dispatcher".to_string(),
+                state: "Idle".to_string(),
+                created_at: chrono::Utc::now(),
+                started_at: None,
+                finished_at: None,
+                task_id: None,
+                query_id: None,
+                message_count: 0,
+            };
+            state.storage.save_session(&session).await?;
+            tracing::info!("Created Dispatcher session: {}", dispatcher.id);
+        }
+    }
+    
+    if !worker_exists {
+        if let Some(worker) = state.session_manager.get_worker().await {
+            let session = crate::storage::StoredSession {
+                id: worker.id.clone(),
+                purpose: "Worker".to_string(),
+                state: "Idle".to_string(),
+                created_at: chrono::Utc::now(),
+                started_at: None,
+                finished_at: None,
+                task_id: None,
+                query_id: None,
+                message_count: 0,
+            };
+            state.storage.save_session(&session).await?;
+            tracing::info!("Created Worker session: {}", worker.id);
+        }
     }
     
     Ok(())
