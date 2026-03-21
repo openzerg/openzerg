@@ -896,6 +896,20 @@ async fn ensure_main_session(state: &std::sync::Arc<crate::api_server::ApiState>
     }
     
     let id = state.session_manager.init_main().await;
+    
+    let session = crate::storage::StoredSession {
+        id: id.clone(),
+        purpose: "Main".to_string(),
+        state: "Idle".to_string(),
+        created_at: chrono::Utc::now(),
+        started_at: None,
+        finished_at: None,
+        task_id: None,
+        query_id: None,
+        message_count: 0,
+    };
+    state.storage.save_session(&session).await?;
+    
     tracing::info!("Created Main session: {}", id);
     
     Ok(())
