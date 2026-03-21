@@ -22,8 +22,12 @@ pub struct LLMClient {
 
 impl LLMClient {
     pub fn new(base_url: String, api_key: String, model: String) -> Self {
+        let client = Client::builder()
+            .user_agent("openzerg/0.5.0")
+            .build()
+            .unwrap_or_else(|_| Client::new());
         Self {
-            client: Client::new(),
+            client,
             config: Arc::new(RwLock::new(LLMConfig { base_url, api_key, model })),
         }
     }
