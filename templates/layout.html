@@ -248,10 +248,14 @@
             const content = input.value.trim();
             if (!content) return;
             
+            // Add user message to UI immediately (optimistic update)
+            appendUserMessage(content);
+            
             // Disable input and button while sending
             input.disabled = true;
             sendBtn.disabled = true;
             sendBtn.classList.add('opacity-50');
+            input.value = '';
             
             try {
                 const response = await fetch('/api/sessions/' + sessionId + '/chat', {
@@ -260,10 +264,7 @@
                     body: JSON.stringify({ content: content })
                 });
                 
-                if (response.ok) {
-                    // Clear input - SSE will add the message to UI
-                    input.value = '';
-                } else {
+                if (!response.ok) {
                     console.error('Failed to send message:', response.status);
                     input.value = content; // Restore content on error
                 }

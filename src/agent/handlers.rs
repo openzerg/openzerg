@@ -1,6 +1,7 @@
 use super::core::AgentCore;
 use crate::protocol::AgentEvent;
 use crate::session::SessionPurpose;
+use futures::StreamExt;
 
 impl AgentCore {
     pub async fn handle_event(&self, event: AgentEvent) {
@@ -98,29 +99,36 @@ impl AgentCore {
                     content: "Processing your request...".to_string(),
                 });
                 
-                let (status, summary, details) = match self.llm_client.complete(vec![
-                    crate::llm::Message::user(&question),
-                ]).await {
-                    Ok(response) => {
-                        let _ = self.event_tx.send(AgentEvent::Response {
-                            session_id: session_id.clone(),
-                            content: response.clone(),
-                        });
-                        
-                        ("completed".to_string(), 
-                         response.chars().take(100).collect::<String>(), 
-                         response.clone())
+                let messages = vec![crate::llm::Message::user(&question)];
+                let mut stream = Box::pin(self.llm_client.stream(messages));
+                let mut full_response = String::new();
+                let mut status = "completed".to_string();
+                
+                while let Some(chunk) = stream.next().await {
+                    match chunk {
+                        Ok(crate::llm::StreamChunk::Content(content)) => {
+                            full_response.push_str(&content);
+                            
+                            let _ = self.event_tx.send(AgentEvent::Response {
+                                session_id: session_id.clone(),
+                                content,
+                            });
+                        }
+                        Ok(crate::llm::StreamChunk::Done) => {
+                            break;
+                        }
+                        Err(e) => {
+                            tracing::error!("Query stream failed: {}", e);
+                            status = "failed".to_string();
+                            let _ = self.event_tx.send(AgentEvent::Error {
+                                session_id: session_id.clone(),
+                                message: e.to_string(),
+                            });
+                            break;
+                        }
+                        _ => {}
                     }
-                    Err(e) => {
-                        tracing::error!("Query failed: {}", e);
-                        let _ = self.event_tx.send(AgentEvent::Error {
-                            session_id: session_id.clone(),
-                            message: e.to_string(),
-                        });
-                        
-                        ("failed".to_string(), e.to_string(), String::new())
-                    }
-                };
+                }
                 
                 self.session_manager.complete(&session_id).await.ok();
                 self.storage.finish_session(&session_id).await.ok();
@@ -130,12 +138,12 @@ impl AgentCore {
                 });
                 
                 if let Some(ref main_id) = main_session_id {
-                    if status == "completed" && !details.is_empty() {
+                    if status == "completed" && !full_response.is_empty() {
                         let msg = crate::storage::StoredMessage {
                             id: uuid::Uuid::new_v4().to_string(),
                             session_id: main_id.clone(),
                             role: crate::storage::MessageRole::Assistant,
-                            content: details.clone(),
+                            content: full_response.clone(),
                             timestamp: chrono::Utc::now(),
                             tool_calls: None,
                         };
@@ -147,8 +155,8 @@ impl AgentCore {
                         child_session_id: session_id.clone(),
                         child_session_type: "Query".to_string(),
                         status,
-                        summary,
-                        details,
+                        summary: full_response.chars().take(100).collect::<String>(),
+                        details: full_response.clone(),
                     });
                 }
             }
@@ -172,8 +180,6 @@ impl AgentCore {
                 tool_calls: None,
             };
             self.storage.save_message(&msg).await.ok();
-            
-            let _ = self.event_tx.send(AgentEvent::UserMessage { content: content.clone() });
         }
         
         let activity = crate::storage::StoredActivity {
@@ -295,55 +301,85 @@ impl AgentCore {
         self.session_manager.update_state(&session_id, crate::session::SessionState::Generating).await.ok();
         self.storage.update_session_state(&session_id, "Generating").await.ok();
         
-        let _ = self.event_tx.send(AgentEvent::Thinking {
-            session_id: session_id.clone(),
-            content: format!("Working on: {}", task),
-        });
-        
         let system_prompt = self.get_system_prompt(purpose).await;
         
-        match self.session_processor.process_with_history(&session_id, &task, system_prompt.as_deref()).await {
-            Ok(response) => {
-                let msg = crate::storage::StoredMessage {
-                    id: uuid::Uuid::new_v4().to_string(),
-                    session_id: session_id.clone(),
-                    role: crate::storage::MessageRole::Assistant,
-                    content: response.clone(),
-                    timestamp: chrono::Utc::now(),
-                    tool_calls: None,
-                };
-                self.storage.save_message(&msg).await.ok();
-                
-                let _ = self.event_tx.send(AgentEvent::Response {
-                    session_id: session_id.clone(),
-                    content: response,
-                });
-                
-                if purpose != SessionPurpose::Main && purpose != SessionPurpose::Dispatcher {
-                    self.session_manager.complete(&session_id).await.ok();
-                    self.storage.finish_session(&session_id).await.ok();
-                } else {
-                    self.session_manager.update_state(&session_id, crate::session::SessionState::Idle).await.ok();
-                    self.storage.update_session_state(&session_id, "Idle").await.ok();
+        let mut messages = Vec::new();
+        if let Some(ref prompt) = system_prompt {
+            messages.push(crate::llm::Message::system(prompt));
+        }
+        
+        let history = self.storage.get_messages(&session_id).await.unwrap_or_default();
+        for msg in history {
+            let m = match msg.role {
+                crate::storage::MessageRole::User => crate::llm::Message::user(&msg.content),
+                crate::storage::MessageRole::Assistant => crate::llm::Message::assistant(&msg.content),
+                _ => continue,
+            };
+            messages.push(m);
+        }
+        messages.push(crate::llm::Message::user(&task));
+        
+        let mut full_response = String::new();
+        let mut thinking_sent = false;
+        
+        let mut stream = Box::pin(self.llm_client.stream(messages));
+        
+        while let Some(chunk) = stream.next().await {
+            match chunk {
+                Ok(crate::llm::StreamChunk::Content(content)) => {
+                    full_response.push_str(&content);
+                    
+                    if !thinking_sent {
+                        let _ = self.event_tx.send(AgentEvent::Thinking {
+                            session_id: session_id.clone(),
+                            content: "Processing your request...".to_string(),
+                        });
+                        thinking_sent = true;
+                    }
+                    
+                    let _ = self.event_tx.send(AgentEvent::Response {
+                        session_id: session_id.clone(),
+                        content: content,
+                    });
                 }
-                
-                let _ = self.event_tx.send(AgentEvent::Done {
-                    session_id: session_id.clone(),
-                });
-            }
-            Err(e) => {
-                tracing::error!("SessionTask failed: {}", e);
-                
-                let _ = self.event_tx.send(AgentEvent::Error {
-                    session_id: session_id.clone(),
-                    message: e.to_string(),
-                });
-                
-                if purpose != SessionPurpose::Main && purpose != SessionPurpose::Dispatcher {
-                    self.session_manager.fail(&session_id).await.ok();
+                Ok(crate::llm::StreamChunk::Done) => {
+                    break;
                 }
+                Err(e) => {
+                    tracing::error!("Stream error: {}", e);
+                    let _ = self.event_tx.send(AgentEvent::Error {
+                        session_id: session_id.clone(),
+                        message: e.to_string(),
+                    });
+                    break;
+                }
+                _ => {}
             }
         }
+        
+        if !full_response.is_empty() {
+            let msg = crate::storage::StoredMessage {
+                id: uuid::Uuid::new_v4().to_string(),
+                session_id: session_id.clone(),
+                role: crate::storage::MessageRole::Assistant,
+                content: full_response.clone(),
+                timestamp: chrono::Utc::now(),
+                tool_calls: None,
+            };
+            self.storage.save_message(&msg).await.ok();
+        }
+        
+        if purpose != SessionPurpose::Main && purpose != SessionPurpose::Dispatcher {
+            self.session_manager.complete(&session_id).await.ok();
+            self.storage.finish_session(&session_id).await.ok();
+        } else {
+            self.session_manager.update_state(&session_id, crate::session::SessionState::Idle).await.ok();
+            self.storage.update_session_state(&session_id, "Idle").await.ok();
+        }
+        
+        let _ = self.event_tx.send(AgentEvent::Done {
+            session_id: session_id.clone(),
+        });
     }
 
     async fn handle_assign_task(
