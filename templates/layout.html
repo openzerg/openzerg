@@ -464,8 +464,8 @@
             // Send to server
             fetch('/api/sessions/' + sessionId + '/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'content=' + encodeURIComponent(content)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content })
             }).catch(err => {
                 console.error('Failed to send message:', err);
             });
