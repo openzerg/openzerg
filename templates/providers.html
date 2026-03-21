@@ -33,27 +33,27 @@
         <table class="w-full">
             <thead>
                 <tr class="bg-background border-b border-border">
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-muted uppercase tracking-wider">Name</th>
+                    <th class="px-6 py-4 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">Name</th>
                     <th class="px-6 py-4 text-left text-xs font-semibold text-muted uppercase tracking-wider">Base URL</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-muted uppercase tracking-wider">Model</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-muted uppercase tracking-wider">API Key</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-muted uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-muted uppercase tracking-wider">Actions</th>
+                    <th class="px-6 py-4 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">Model</th>
+                    <th class="px-6 py-4 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">API Key</th>
+                    <th class="px-6 py-4 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">Status</th>
+                    <th class="px-6 py-4 text-left text-xs font-semibold text-muted uppercase tracking-wider whitespace-nowrap">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-border">
+            <tbody class="divide-y divide-border/50">
                 {% for p in providers %}
-                <tr class="hover:bg-surfaceHover transition-colors">
-                    <td class="px-6 py-4">
+                <tr class="hover:bg-surfaceHover/50 transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap">
                         <span class="font-medium text-text">{{ p.name }}</span>
                     </td>
-                    <td class="px-6 py-4 font-mono text-sm text-muted">
+                    <td class="px-6 py-4 font-mono text-sm text-muted truncate max-w-xs">
                         {{ p.base_url }}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-6 py-4 whitespace-nowrap">
                         <span class="px-2 py-1 bg-accent/10 text-accent rounded-md text-sm font-mono">{{ p.model }}</span>
                     </td>
-                    <td class="px-6 py-4 font-mono text-sm text-muted">
+                    <td class="px-6 py-4 font-mono text-sm text-muted whitespace-nowrap">
                         {{ p.api_key_masked }}
                     </td>
                     <td class="px-6 py-4">

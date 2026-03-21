@@ -3,7 +3,7 @@
 {% block title %}Session {{ session_id_short }} - OpenZerg{% endblock %}
 
 {% block sidebar %}
-<div class="w-64 bg-surface border-r border-border p-4 overflow-y-auto scrollbar-thin">
+<div class="w-64 bg-surface border-r border-border p-4 overflow-y-auto scrollbar-thin flex-shrink-0">
     <div class="mb-6">
         <div class="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-2">Main</div>
         <div class="px-2 py-2 rounded-lg cursor-pointer transition-colors {% if session_purpose == "Main" %}bg-primary/10 text-primary{% else %}hover:bg-surfaceHover text-muted{% endif %}" onclick="switchSession('{{ main_session_id }}')">
@@ -73,20 +73,28 @@
 {% endblock %}
 
 {% block content %}
-<div class="flex-1 flex flex-col overflow-hidden">
-    <div class="flex-1 overflow-y-auto p-4 scrollbar-thin" id="messages">
+<div class="flex-1 flex flex-col overflow-hidden min-w-0">
+    <div class="flex-1 overflow-y-auto p-4 scrollbar-thin space-y-3" id="messages">
         {% if !system_prompt.is_empty() %}
-        <div class="mb-4 p-4 bg-surface rounded-xl border border-border">
-            <div class="flex items-center gap-2 mb-2">
-                <span class="text-xs font-semibold text-primary uppercase tracking-wider">System</span>
+        <details class="group bg-surface rounded-xl border border-border overflow-hidden">
+            <summary class="flex items-center justify-between px-4 py-3 cursor-pointer bg-surfaceHover/50 hover:bg-surfaceHover transition-colors">
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-primary transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                    <span class="text-xs font-semibold text-primary uppercase tracking-wider">System Prompt</span>
+                </div>
+                <span class="text-xs text-muted">Click to expand</span>
+            </summary>
+            <div class="px-4 py-3 border-t border-border">
+                <pre class="text-xs text-muted whitespace-pre-wrap font-mono leading-relaxed max-h-96 overflow-y-auto scrollbar-thin">{{ system_prompt }}</pre>
             </div>
-            <div class="text-sm text-muted whitespace-pre-wrap font-mono leading-relaxed">{{ system_prompt }}</div>
-        </div>
+        </details>
         {% endif %}
         
         {% for msg in messages %}
-        <div class="mb-4 p-4 rounded-xl {% if msg.role == "User" %}bg-primary/5 border border-primary/20{% else if msg.role == "Thinking" %}bg-surface border-l-4 border-l-yellow-500{% else %}bg-surface border border-border{% endif %}{% if msg.role == "Thinking" %} thinking-msg collapsed{% endif %}">
-            <div class="flex items-center gap-2 mb-2 cursor-pointer{% if msg.role == "Thinking" %} thinking-toggle{% endif %}">
+        <div class="rounded-xl border {% if msg.role == "User" %}bg-primary/5 border-primary/20{% else if msg.role == "Thinking" %}bg-surface border-l-4 border-l-yellow-500{% else %}bg-surface border-border{% endif %}{% if msg.role == "Thinking" %} thinking-msg collapsed{% endif %}">
+            <div class="flex items-center gap-2 px-4 py-2.5 border-b {% if msg.role == "User" %}border-primary/10{% else if msg.role == "Thinking" %}border-yellow-500/20{% else %}border-border{% endif %}{% if msg.role == "Thinking" %} thinking-toggle cursor-pointer{% endif %}">
                 <span class="text-xs font-semibold {% if msg.role == "User" %}text-primary{% else if msg.role == "Assistant" %}text-accent{% else if msg.role == "Thinking" %}text-yellow-500{% else %}text-muted{% endif %} uppercase tracking-wider">
                     {{ msg.role }}
                 </span>
@@ -94,18 +102,23 @@
                 <span class="text-xs text-muted thinking-hint">(click to expand)</span>
                 {% endif %}
             </div>
-            <div class="text-sm text-text leading-relaxed {% if msg.role == "Thinking" %}thinking-content{% endif %} whitespace-pre-wrap">{{ msg.content }}</div>
+            <div class="px-4 py-3">
+                <div class="text-sm text-text leading-relaxed{% if msg.role == "Thinking" %} thinking-content{% endif %} whitespace-pre-wrap font-mono">{{ msg.content }}</div>
+            </div>
         </div>
         {% endfor %}
     </div>
     
     {% if session_purpose == "Main" %}
-    <div class="p-4 border-t border-border bg-surface">
+    <div class="p-4 border-t border-border bg-surface flex-shrink-0">
         <form onsubmit="sendMessage(event)" class="flex gap-3">
             <input type="text" id="message-input" data-session-id="{{ session_id }}" 
                 placeholder="Type a message..." 
                 class="flex-1 px-4 py-3 bg-background border border-border rounded-xl text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
-            <button type="submit" class="px-6 py-3 bg-primary hover:bg-primaryHover text-white font-medium rounded-xl transition-colors">
+            <button type="submit" class="px-6 py-3 bg-primary hover:bg-primaryHover text-white font-medium rounded-xl transition-colors flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                </svg>
                 Send
             </button>
         </form>
@@ -122,7 +135,7 @@
 {% endblock %}
 
 {% block panel %}
-<div class="w-80 bg-surface border-l border-border p-4 overflow-y-auto scrollbar-thin">
+<div class="w-80 bg-surface border-l border-border p-4 overflow-y-auto scrollbar-thin flex-shrink-0">
     <div class="mb-6">
         <h3 class="text-xs font-semibold text-muted uppercase tracking-wider mb-4">Context</h3>
         <div class="space-y-3">

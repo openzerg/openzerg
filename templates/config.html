@@ -31,19 +31,19 @@
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm text-muted mb-2">Base URL</label>
+                    <label class="block text-sm font-medium text-text mb-2">Base URL</label>
                     <input type="url" name="llm_base_url" value="{{ llm_base_url }}"
                         class="w-full px-4 py-3 bg-background border border-border rounded-xl text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
                 </div>
                 
                 <div>
-                    <label class="block text-sm text-muted mb-2">API Key</label>
+                    <label class="block text-sm font-medium text-text mb-2">API Key</label>
                     <input type="password" name="llm_api_key" placeholder="Leave empty to keep existing ({{ llm_api_key_masked }})"
                         class="w-full px-4 py-3 bg-background border border-border rounded-xl text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
                 </div>
                 
                 <div>
-                    <label class="block text-sm text-muted mb-2">Default Model</label>
+                    <label class="block text-sm font-medium text-text mb-2">Default Model</label>
                     <input type="text" name="llm_model" value="{{ llm_model }}"
                         class="w-full px-4 py-3 bg-background border border-border rounded-xl text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
                 </div>
@@ -55,19 +55,19 @@
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm text-muted mb-2">Vision Base URL</label>
+                    <label class="block text-sm font-medium text-text mb-2">Vision Base URL</label>
                     <input type="url" name="vision_base_url" value="{{ vision_base_url }}" placeholder="Optional"
                         class="w-full px-4 py-3 bg-background border border-border rounded-xl text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
                 </div>
                 
                 <div>
-                    <label class="block text-sm text-muted mb-2">Vision API Key</label>
+                    <label class="block text-sm font-medium text-text mb-2">Vision API Key</label>
                     <input type="password" name="vision_api_key" placeholder="Leave empty to keep existing ({{ vision_api_key_masked }})"
                         class="w-full px-4 py-3 bg-background border border-border rounded-xl text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
                 </div>
                 
                 <div>
-                    <label class="block text-sm text-muted mb-2">Vision Model</label>
+                    <label class="block text-sm font-medium text-text mb-2">Vision Model</label>
                     <input type="text" name="vision_model" value="{{ vision_model }}" placeholder="Optional"
                         class="w-full px-4 py-3 bg-background border border-border rounded-xl text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
                 </div>
@@ -78,7 +78,7 @@
             <h2 class="text-sm font-semibold text-muted uppercase tracking-wider mb-4">Runtime Settings</h2>
             
             <div>
-                <label class="block text-sm text-muted mb-2">API Port</label>
+                <label class="block text-sm font-medium text-text mb-2">API Port</label>
                 <input type="number" name="api_port" value="{{ api_port }}"
                     class="w-48 px-4 py-3 bg-background border border-border rounded-xl text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
             </div>
