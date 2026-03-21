@@ -213,6 +213,22 @@ impl AgentCore {
                     
                     if let Some(sid) = session_id {
                         task.status = crate::task::TaskStatus::Assigned;
+                        
+                        let system_prompt = self.get_system_prompt(SessionPurpose::Task).await;
+                        let session_record = crate::storage::StoredSession {
+                            id: sid.clone(),
+                            purpose: "Task".to_string(),
+                            state: "Idle".to_string(),
+                            created_at: chrono::Utc::now(),
+                            started_at: None,
+                            finished_at: None,
+                            task_id: Some(task_id.clone()),
+                            query_id: None,
+                            message_count: 0,
+                            system_prompt: system_prompt.clone().unwrap_or_default(),
+                        };
+                        self.storage.save_session(&session_record).await.ok();
+                        
                         let stored_task = crate::storage::StoredTask {
                             id: task.id.clone(),
                             content: task.title.clone(),
