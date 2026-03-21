@@ -312,44 +312,13 @@
             color: #94a3b8;
         }
         
-        .system-prompt {
-            background: #16213e;
-            border: 1px solid #0f3460;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        .system-prompt .prompt-header {
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: #94a3b8;
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-        .system-prompt .prompt-header:hover {
-            background: #1e293b;
-            border-radius: 8px;
-        }
-        .system-prompt .toggle-icon {
-            font-size: 0.625rem;
-            transition: transform 0.2s;
-        }
-        .system-prompt.collapsed .toggle-icon {
-            transform: rotate(-90deg);
-        }
-        .system-prompt .prompt-content {
-            padding: 1rem;
-            border-top: 1px solid #0f3460;
+        .message.system {
+            background: #1a1a2e;
+            border-left: 3px solid #6366f1;
             font-size: 0.8125rem;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            color: #cbd5e1;
-            font-family: 'SF Mono', 'Monaco', monospace;
         }
-        .system-prompt.collapsed .prompt-content {
-            display: none;
+        .message.system .role {
+            color: #6366f1;
         }
     </style>
     {% block head %}{% endblock %}
