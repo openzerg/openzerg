@@ -3,58 +3,68 @@
 {% block title %}Session {{ session_id_short }} - OpenZerg{% endblock %}
 
 {% block sidebar %}
-<div class="session-list">
-    <div class="session-group">
-        <div class="session-group-title">Main</div>
-        <div class="session-item {% if session_purpose == "Main" %}active{% endif %}" onclick="switchSession('{{ main_session_id }}')">
-            <span class="id">{{ main_session_id_short }}</span>
-            <span class="state">{{ main_session_state }}</span>
+<div class="w-64 bg-surface border-r border-border p-4 overflow-y-auto scrollbar-thin">
+    <div class="mb-6">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-2">Main</div>
+        <div class="px-2 py-2 rounded-lg cursor-pointer transition-colors {% if session_purpose == "Main" %}bg-primary/10 text-primary{% else %}hover:bg-surfaceHover text-muted{% endif %}" onclick="switchSession('{{ main_session_id }}')">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-mono">{{ main_session_id_short }}</span>
+                <span class="text-xs px-2 py-0.5 rounded-full {% if main_session_state == "Idle" %}bg-muted/20{% else %}bg-primary/20{% endif %}">{{ main_session_state }}</span>
+            </div>
         </div>
     </div>
     
     {% if !dispatchers.is_empty() %}
-    <div class="session-group">
-        <div class="session-group-title">Dispatcher</div>
+    <div class="mb-6">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-2">Dispatcher</div>
         {% for s in dispatchers %}
-        <div class="session-item {% if session_id == s.id %}active{% endif %}" onclick="switchSession('{{ s.id }}')">
-            <span class="id">{{ s.id_short }}</span>
-            <span class="state">{{ s.state }}</span>
+        <div class="px-2 py-2 rounded-lg cursor-pointer transition-colors {% if session_id == s.id %}bg-primary/10 text-primary{% else %}hover:bg-surfaceHover text-muted{% endif %}" onclick="switchSession('{{ s.id }}')">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-mono">{{ s.id_short }}</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-muted/20">{{ s.state }}</span>
+            </div>
         </div>
         {% endfor %}
     </div>
     {% endif %}
     
     {% if !queries.is_empty() %}
-    <div class="session-group">
-        <div class="session-group-title">Queries ({{ queries.len() }})</div>
+    <div class="mb-6">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-2">Queries ({{ queries.len() }})</div>
         {% for s in queries %}
-        <div class="session-item {% if session_id == s.id %}active{% endif %}" onclick="switchSession('{{ s.id }}')">
-            <span class="id">{{ s.id_short }}</span>
-            <span class="state">{{ s.state }}</span>
+        <div class="px-2 py-2 rounded-lg cursor-pointer transition-colors {% if session_id == s.id %}bg-primary/10 text-primary{% else %}hover:bg-surfaceHover text-muted{% endif %}" onclick="switchSession('{{ s.id }}')">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-mono">{{ s.id_short }}</span>
+                <span class="text-xs px-2 py-0.5 rounded-full {% if s.state == "Generating" %}bg-accent/20 text-accent{% else %}bg-muted/20{% endif %}">{{ s.state }}</span>
+            </div>
         </div>
         {% endfor %}
     </div>
     {% endif %}
     
     {% if !tasks.is_empty() %}
-    <div class="session-group">
-        <div class="session-group-title">Tasks ({{ tasks.len() }})</div>
+    <div class="mb-6">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-2">Tasks ({{ tasks.len() }})</div>
         {% for s in tasks %}
-        <div class="session-item {% if session_id == s.id %}active{% endif %}" onclick="switchSession('{{ s.id }}')">
-            <span class="id">{{ s.id_short }}</span>
-            <span class="state">{{ s.state }}</span>
+        <div class="px-2 py-2 rounded-lg cursor-pointer transition-colors {% if session_id == s.id %}bg-primary/10 text-primary{% else %}hover:bg-surfaceHover text-muted{% endif %}" onclick="switchSession('{{ s.id }}')">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-mono">{{ s.id_short }}</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-muted/20">{{ s.state }}</span>
+            </div>
         </div>
         {% endfor %}
     </div>
     {% endif %}
     
     {% if !workers.is_empty() %}
-    <div class="session-group">
-        <div class="session-group-title">Workers ({{ workers.len() }})</div>
+    <div class="mb-6">
+        <div class="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-2">Workers ({{ workers.len() }})</div>
         {% for s in workers %}
-        <div class="session-item {% if session_id == s.id %}active{% endif %}" onclick="switchSession('{{ s.id }}')">
-            <span class="id">{{ s.id_short }}</span>
-            <span class="state">{{ s.state }}</span>
+        <div class="px-2 py-2 rounded-lg cursor-pointer transition-colors {% if session_id == s.id %}bg-primary/10 text-primary{% else %}hover:bg-surfaceHover text-muted{% endif %}" onclick="switchSession('{{ s.id }}')">
+            <div class="flex items-center justify-between">
+                <span class="text-sm font-mono">{{ s.id_short }}</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-muted/20">{{ s.state }}</span>
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -63,79 +73,105 @@
 {% endblock %}
 
 {% block content %}
-<div class="messages" id="messages">
-    {% if !system_prompt.is_empty() %}
-    <div class="message system">
-        <div class="role">System</div>
-        <div class="content">{{ system_prompt }}</div>
-    </div>
-    {% endif %}
-    
-    {% for msg in messages %}
-    <div class="message {{ msg.role|lower }}{% if msg.role == "Thinking" %} collapsed{% endif %}">
-        <div class="role">{% if msg.role == "Thinking" %}Thinking<span class="toggle-hint"> (click to expand)</span>{% else %}{{ msg.role }}{% endif %}</div>
-        <div class="content">{{ msg.content }}</div>
-    </div>
-    {% endfor %}
-</div>
-
-{% if session_purpose == "Main" %}
-<div class="input-area">
-    <form onsubmit="sendMessage(event)">
-        <input type="text" id="message-input" data-session-id="{{ session_id }}" placeholder="Type a message..." />
-        <button type="submit">Send</button>
-    </form>
-</div>
-{% else %}
-<div class="input-area readonly">
-    <p>This is a {{ session_purpose }} session. <a href="/ui/sessions/{{ main_session_id }}">Open Main Session</a> to chat.</p>
-</div>
-{% endif %}
-{% endblock %}
-
-{% block panel %}
-<div class="panel-section">
-    <h3>Context</h3>
-    <div class="stat-item">
-        <span class="label">Tokens</span>
-        <span class="value">{{ context.total_tokens }}</span>
-    </div>
-    <div class="progress-bar">
-        <div class="fill" style="width: {{ context.usage_percent }}%"></div>
-    </div>
-    <div class="stat-item">
-        <span class="label">Usage</span>
-        <span class="value">{{ context.usage_percent }}%</span>
-    </div>
-    <div class="stat-item">
-        <span class="label">Messages</span>
-        <span class="value">{{ context.message_count }}</span>
-    </div>
-</div>
-
-{% if !active_tasks.is_empty() %}
-<div class="panel-section">
-    <h3>Active Tasks</h3>
-    <div class="task-list">
-        {% for task in active_tasks %}
-        <div class="task-item">
-            <span class="status {{ task.status }}"></span>
-            <span class="title">{{ task.content }}</span>
+<div class="flex-1 flex flex-col overflow-hidden">
+    <div class="flex-1 overflow-y-auto p-4 scrollbar-thin" id="messages">
+        {% if !system_prompt.is_empty() %}
+        <div class="mb-4 p-4 bg-surface rounded-xl border border-border">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="text-xs font-semibold text-primary uppercase tracking-wider">System</span>
+            </div>
+            <div class="text-sm text-muted whitespace-pre-wrap font-mono leading-relaxed">{{ system_prompt }}</div>
+        </div>
+        {% endif %}
+        
+        {% for msg in messages %}
+        <div class="mb-4 p-4 rounded-xl {% if msg.role == "User" %}bg-primary/5 border border-primary/20{% else if msg.role == "Thinking" %}bg-surface border-l-4 border-l-yellow-500{% else %}bg-surface border border-border{% endif %}{% if msg.role == "Thinking" %} thinking-msg collapsed{% endif %}">
+            <div class="flex items-center gap-2 mb-2 cursor-pointer{% if msg.role == "Thinking" %} thinking-toggle{% endif %}">
+                <span class="text-xs font-semibold {% if msg.role == "User" %}text-primary{% else if msg.role == "Assistant" %}text-accent{% else if msg.role == "Thinking" %}text-yellow-500{% else %}text-muted{% endif %} uppercase tracking-wider">
+                    {{ msg.role }}
+                </span>
+                {% if msg.role == "Thinking" %}
+                <span class="text-xs text-muted thinking-hint">(click to expand)</span>
+                {% endif %}
+            </div>
+            <div class="text-sm text-text leading-relaxed {% if msg.role == "Thinking" %}thinking-content{% endif %} whitespace-pre-wrap">{{ msg.content }}</div>
         </div>
         {% endfor %}
     </div>
-</div>
-{% endif %}
-
-<div class="panel-section">
-    <h3>Provider</h3>
-    <div class="stat-item">
-        <span class="label">Name</span>
-        <span class="value">{{ provider_name }}</span>
+    
+    {% if session_purpose == "Main" %}
+    <div class="p-4 border-t border-border bg-surface">
+        <form onsubmit="sendMessage(event)" class="flex gap-3">
+            <input type="text" id="message-input" data-session-id="{{ session_id }}" 
+                placeholder="Type a message..." 
+                class="flex-1 px-4 py-3 bg-background border border-border rounded-xl text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
+            <button type="submit" class="px-6 py-3 bg-primary hover:bg-primaryHover text-white font-medium rounded-xl transition-colors">
+                Send
+            </button>
+        </form>
     </div>
-    <div class="stat-item">
-        <span class="label">Model</span>
-        <span class="value">{{ provider_model }}</span>
+    {% else %}
+    <div class="p-4 border-t border-border bg-surface/50 text-center">
+        <p class="text-sm text-muted">
+            This is a <span class="text-text font-medium">{{ session_purpose }}</span> session. 
+            <a href="/ui/sessions/{{ main_session_id }}" class="text-primary hover:underline">Open Main Session</a> to chat.
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block panel %}
+<div class="w-80 bg-surface border-l border-border p-4 overflow-y-auto scrollbar-thin">
+    <div class="mb-6">
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wider mb-4">Context</h3>
+        <div class="space-y-3">
+            <div class="flex justify-between items-center py-2 border-b border-border">
+                <span class="text-sm text-muted">Tokens</span>
+                <span class="text-sm font-mono text-text">{{ context.total_tokens }}</span>
+            </div>
+            <div class="h-2 bg-background rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all" style="width: {{ context.usage_percent }}%"></div>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-border">
+                <span class="text-sm text-muted">Usage</span>
+                <span class="text-sm font-mono text-text">{{ context.usage_percent }}%</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-border">
+                <span class="text-sm text-muted">Messages</span>
+                <span class="text-sm font-mono text-text">{{ context.message_count }}</span>
+            </div>
+        </div>
+    </div>
+    
+    {% if !active_tasks.is_empty() %}
+    <div class="mb-6">
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wider mb-4">Active Tasks</h3>
+        <div class="space-y-2">
+            {% for task in active_tasks %}
+            <div class="p-3 bg-background rounded-lg border border-border">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full {% if task.status == "InProgress" %}bg-accent animate-pulse{% else %}bg-muted{% endif %}"></span>
+                    <span class="text-sm text-text truncate">{{ task.content }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div>
+        <h3 class="text-xs font-semibold text-muted uppercase tracking-wider mb-4">Provider</h3>
+        <div class="space-y-3">
+            <div class="flex justify-between items-center py-2 border-b border-border">
+                <span class="text-sm text-muted">Name</span>
+                <span class="text-sm text-text">{{ provider_name }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-border">
+                <span class="text-sm text-muted">Model</span>
+                <span class="text-sm font-mono text-accent">{{ provider_model }}</span>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -143,20 +179,22 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.message.thinking .role').forEach(function(roleDiv) {
-            roleDiv.onclick = function() {
-                const msgDiv = this.closest('.message');
+        document.querySelectorAll('.thinking-toggle').forEach(function(toggle) {
+            toggle.addEventListener('click', function() {
+                const msgDiv = this.closest('.thinking-msg');
                 msgDiv.classList.toggle('collapsed');
-                const hint = this.querySelector('.toggle-hint');
+                const hint = this.querySelector('.thinking-hint');
                 if (hint) {
-                    if (msgDiv.classList.contains('collapsed')) {
-                        hint.textContent = ' (click to expand)';
-                    } else {
-                        hint.textContent = ' (click to collapse)';
-                    }
+                    hint.textContent = msgDiv.classList.contains('collapsed') ? '(click to expand)' : '(click to collapse)';
                 }
-            };
+            });
         });
+        
+        // Add styles for collapsed thinking
+        const style = document.createElement('style');
+        style.textContent = '.thinking-msg.collapsed .thinking-content { display: none; }';
+        document.head.appendChild(style);
+        
         connectSSE('{{ session_id }}');
     });
 </script>
