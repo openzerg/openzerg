@@ -316,8 +316,13 @@ impl AgentCore {
                     content: response,
                 });
                 
-                self.session_manager.complete(&session_id).await.ok();
-                self.storage.finish_session(&session_id).await.ok();
+                if purpose != SessionPurpose::Main && purpose != SessionPurpose::Dispatcher {
+                    self.session_manager.complete(&session_id).await.ok();
+                    self.storage.finish_session(&session_id).await.ok();
+                } else {
+                    self.session_manager.update_state(&session_id, crate::session::SessionState::Idle).await.ok();
+                    self.storage.update_session_state(&session_id, "Idle").await.ok();
+                }
                 
                 let _ = self.event_tx.send(AgentEvent::Done {
                     session_id: session_id.clone(),
@@ -331,7 +336,9 @@ impl AgentCore {
                     message: e.to_string(),
                 });
                 
-                self.session_manager.fail(&session_id).await.ok();
+                if purpose != SessionPurpose::Main && purpose != SessionPurpose::Dispatcher {
+                    self.session_manager.fail(&session_id).await.ok();
+                }
             }
         }
     }
