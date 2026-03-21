@@ -103,6 +103,30 @@ pub enum AgentEvent {
         resource: ResourceType,
         message: String,
     },
+
+    SessionCreated {
+        session_id: String,
+        purpose: String,
+    },
+
+    Thinking {
+        session_id: String,
+        content: String,
+    },
+
+    Response {
+        session_id: String,
+        content: String,
+    },
+
+    Done {
+        session_id: String,
+    },
+
+    Error {
+        session_id: String,
+        message: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -34,6 +34,13 @@ impl AgentCore {
             crate::protocol::AgentEvent::Interrupt { message, target_session } => {
                 tracing::info!("Interrupt: {} (target: {:?})", message, target_session);
             }
+
+            // SSE events are handled by the API server, not the agent
+            crate::protocol::AgentEvent::SessionCreated { .. } => {}
+            crate::protocol::AgentEvent::Thinking { .. } => {}
+            crate::protocol::AgentEvent::Response { .. } => {}
+            crate::protocol::AgentEvent::Done { .. } => {}
+            crate::protocol::AgentEvent::Error { .. } => {}
         }
     }
 
@@ -44,6 +51,12 @@ impl AgentCore {
             Ok(session_id) => {
                 self.session_manager.bind_query(&session_id, &query_id).await.ok();
                 self.session_manager.update_state(&session_id, crate::session::SessionState::Generating).await.ok();
+                
+                // Send SessionCreated event
+                let _ = self.event_tx.send(crate::protocol::AgentEvent::SessionCreated {
+                    session_id: session_id.clone(),
+                    purpose: "Query".to_string(),
+                });
                 
                 let session = crate::storage::StoredSession {
                     id: session_id.clone(),
@@ -68,6 +81,12 @@ impl AgentCore {
                 };
                 self.storage.save_message(&msg).await.ok();
                 
+                // Send Thinking event
+                let _ = self.event_tx.send(crate::protocol::AgentEvent::Thinking {
+                    session_id: session_id.clone(),
+                    content: "Processing your request...".to_string(),
+                });
+                
                 match self.llm_client.complete(vec![
                     crate::llm::Message::user(&question),
                 ]).await {
@@ -76,19 +95,35 @@ impl AgentCore {
                             id: uuid::Uuid::new_v4().to_string(),
                             session_id: session_id.clone(),
                             role: crate::storage::MessageRole::Assistant,
-                            content: response,
+                            content: response.clone(),
                             timestamp: chrono::Utc::now(),
                             tool_calls: None,
                         };
                         self.storage.save_message(&msg).await.ok();
+                        
+                        // Send Response event
+                        let _ = self.event_tx.send(crate::protocol::AgentEvent::Response {
+                            session_id: session_id.clone(),
+                            content: response,
+                        });
                     }
                     Err(e) => {
                         tracing::error!("Query failed: {}", e);
+                        // Send Error event
+                        let _ = self.event_tx.send(crate::protocol::AgentEvent::Error {
+                            session_id: session_id.clone(),
+                            message: e.to_string(),
+                        });
                     }
                 }
                 
                 self.session_manager.complete(&session_id).await.ok();
                 self.storage.finish_session(&session_id).await.ok();
+                
+                // Send Done event
+                let _ = self.event_tx.send(crate::protocol::AgentEvent::Done {
+                    session_id: session_id.clone(),
+                });
             }
             Err(e) => {
                 tracing::error!("Failed to create session for query: {}", e);

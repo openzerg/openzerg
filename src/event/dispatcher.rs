@@ -85,6 +85,13 @@ impl EventDispatcher {
                 self.handle_resource_warning(resource, message).await;
                 (true, None)
             }
+
+            // SSE events are internal, just acknowledge them
+            AgentEvent::SessionCreated { .. } => (true, None),
+            AgentEvent::Thinking { .. } => (true, None),
+            AgentEvent::Response { .. } => (true, None),
+            AgentEvent::Done { .. } => (true, None),
+            AgentEvent::Error { .. } => (true, None),
         };
 
         Ok(Message::VmEventAck(VmEventAck {

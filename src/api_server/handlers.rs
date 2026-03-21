@@ -500,6 +500,21 @@ pub async fn session_events(
                         AgentEvent::ResourceWarning { resource, message } => {
                             SseEvent::error(&format!("[{:?}] {}", resource, message))
                         }
+                        AgentEvent::SessionCreated { session_id, purpose } => {
+                            SseEvent::session_created(&format!("{}:{}", session_id, purpose))
+                        }
+                        AgentEvent::Thinking { session_id, content } => {
+                            SseEvent::thinking(&format!("[{}] {}", session_id, content))
+                        }
+                        AgentEvent::Response { session_id, content } => {
+                            SseEvent::response(&format!("[{}] {}", session_id, content))
+                        }
+                        AgentEvent::Done { session_id } => {
+                            SseEvent::done(&session_id)
+                        }
+                        AgentEvent::Error { session_id, message } => {
+                            SseEvent::error(&format!("[{}] {}", session_id, message))
+                        }
                     };
                     
                     yield Ok(Event::default()
