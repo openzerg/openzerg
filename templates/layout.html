@@ -114,11 +114,6 @@
                 appendResponse(data.content);
             });
             
-            eventSource.addEventListener('user_message', (e) => {
-                const data = JSON.parse(e.data);
-                appendUserMessage(data.content);
-            });
-            
             eventSource.addEventListener('done', (e) => {
                 const data = JSON.parse(e.data);
                 markComplete(data.session_id);
