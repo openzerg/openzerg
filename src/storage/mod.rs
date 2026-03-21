@@ -142,6 +142,12 @@ impl Storage {
         .execute(pool)
         .await?;
         
+        sqlx::query(r#"
+            ALTER TABLE sessions ADD COLUMN system_prompt TEXT NOT NULL DEFAULT ''
+        "#)
+        .execute(pool)
+        .await.ok();
+        
         Ok(())
     }
 
