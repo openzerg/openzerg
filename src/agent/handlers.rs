@@ -45,6 +45,19 @@ impl AgentCore {
                 self.session_manager.bind_query(&session_id, &query_id).await.ok();
                 self.session_manager.update_state(&session_id, crate::session::SessionState::Generating).await.ok();
                 
+                let session = crate::storage::StoredSession {
+                    id: session_id.clone(),
+                    purpose: "Query".to_string(),
+                    state: "Generating".to_string(),
+                    created_at: chrono::Utc::now(),
+                    started_at: Some(chrono::Utc::now()),
+                    finished_at: None,
+                    task_id: None,
+                    query_id: Some(query_id.clone()),
+                    message_count: 0,
+                };
+                self.storage.save_session(&session).await.ok();
+                
                 let msg = crate::storage::StoredMessage {
                     id: uuid::Uuid::new_v4().to_string(),
                     session_id: session_id.clone(),
