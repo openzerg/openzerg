@@ -222,27 +222,6 @@
         function switchSession(sessionId) {
             window.location.href = '/ui/sessions/' + sessionId;
         }
-        
-        function sendMessage(event) {
-            event.preventDefault();
-            const input = document.getElementById('message-input');
-            const content = input.value.trim();
-            if (!content) return;
-            
-            const sessionId = input.dataset.sessionId;
-            
-            // Clear input immediately
-            input.value = '';
-            
-            // Send to server - SSE will handle UI updates
-            fetch('/api/sessions/' + sessionId + '/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: content })
-            }).catch(err => {
-                console.error('Failed to send message:', err);
-            });
-        }
     </script>
     {% block scripts %}{% endblock %}
 </body>
