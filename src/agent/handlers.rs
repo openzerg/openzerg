@@ -201,6 +201,20 @@ impl AgentCore {
             Ok(plan) => {
                 tracing::info!("Analysis: {}", plan.analysis);
                 
+                // Save Dispatcher's analysis to Dispatcher session's message history
+                let dispatcher = self.session_manager.get_dispatcher().await;
+                if let Some(ref disp) = dispatcher {
+                    let msg = crate::storage::StoredMessage {
+                        id: uuid::Uuid::new_v4().to_string(),
+                        session_id: disp.id.clone(),
+                        role: crate::storage::MessageRole::Assistant,
+                        content: format!("Analysis: {}\nPlan: {} tasks created", plan.analysis, plan.tasks.len()),
+                        timestamp: chrono::Utc::now(),
+                        tool_calls: None,
+                    };
+                    self.storage.save_message(&msg).await.ok();
+                }
+                
                 for mut task in plan.tasks {
                     let task_id = task.id.clone();
                     let session_id = match plan.assignments.get(&task_id) {

@@ -506,11 +506,11 @@ pub async fn session_events(
                         AgentEvent::SessionCreated { session_id, purpose } => {
                             SseEvent::session_created(&format!("{}:{}", session_id, purpose))
                         }
-                        AgentEvent::Thinking { session_id, content } => {
-                            SseEvent::thinking(&format!("[{}] {}", session_id, content))
+                        AgentEvent::Thinking { session_id: _, content } => {
+                            SseEvent::thinking(&content)
                         }
-                        AgentEvent::Response { session_id, content } => {
-                            SseEvent::response(&format!("[{}] {}", session_id, content))
+                        AgentEvent::Response { session_id: _, content } => {
+                            SseEvent::response(&content)
                         }
                         AgentEvent::Done { session_id } => {
                             SseEvent::done(&session_id)
