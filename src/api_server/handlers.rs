@@ -107,10 +107,9 @@ pub async fn send_to_session(
     Path(id): Path<String>,
     Json(req): Json<SendMessageRequest>,
 ) -> impl axum::response::IntoResponse {
-    let query_id = uuid::Uuid::new_v4().to_string();
-    let event = AgentEvent::Query {
-        query_id,
-        question: req.content,
+    let event = AgentEvent::Message {
+        content: req.content,
+        from: "user".to_string(),
     };
     
     let _ = state.event_tx.send(event);

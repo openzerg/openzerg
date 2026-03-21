@@ -154,6 +154,18 @@ impl AgentCore {
     async fn handle_message(&self, content: String, from: String) {
         tracing::info!("Message from {}: {}", from, content);
         
+        if let Some(main) = self.session_manager.get_main().await {
+            let msg = crate::storage::StoredMessage {
+                id: uuid::Uuid::new_v4().to_string(),
+                session_id: main.id.clone(),
+                role: if from == "user" { crate::storage::MessageRole::User } else { crate::storage::MessageRole::Assistant },
+                content: content.clone(),
+                timestamp: chrono::Utc::now(),
+                tool_calls: None,
+            };
+            self.storage.save_message(&msg).await.ok();
+        }
+        
         let activity = crate::storage::StoredActivity {
             id: uuid::Uuid::new_v4().to_string(),
             session_id: None,
