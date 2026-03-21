@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - OpenZerg{% endblock %}
+
+{% block sidebar %}
+<div class="session-list">
+    {% if !main_session_id.is_empty() %}
+    <div class="session-group">
+        <div class="session-group-title">Main Session</div>
+        <div class="session-item active" onclick="switchSession('{{ main_session_id }}')">
+            <span class="id">{{ main_session_id_short }}</span>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No active sessions</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="messages">
+    <div class="empty-state">
+        <h2>Welcome to OpenZerg</h2>
+        <p>Your AI-powered development agent</p>
+        {% if !main_session_id.is_empty() %}
+        <p style="margin-top: 1rem;">
+            <a href="/ui/sessions/{{ main_session_id }}" style="color: #4ade80;">Open Main Session to start chatting</a>
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block panel %}
+<div class="panel-section">
+    <h3>Statistics</h3>
+    <div class="stat-item">
+        <span class="label">Total Sessions</span>
+        <span class="value">{{ total_sessions }}</span>
+    </div>
+    <div class="stat-item">
+        <span class="label">Active Sessions</span>
+        <span class="value">{{ active_sessions }}</span>
+    </div>
+</div>
+
+<div class="panel-section">
+    <h3>Quick Links</h3>
+    <div class="stat-item">
+        <a href="/ui/providers" style="color: #4ade80;">Manage Providers</a>
+    </div>
+    <div class="stat-item">
+        <a href="/ui/config" style="color: #4ade80;">Configuration</a>
+    </div>
+</div>
+{% endblock %}

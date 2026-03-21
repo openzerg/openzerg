@@ -1,12 +1,18 @@
 use std::sync::Arc;
+use std::convert::Infallible;
 use axum::{
     extract::{Path, Query, State},
     Json,
+    response::{
+        sse::{Event, KeepAlive, Sse},
+    },
 };
+use futures::stream::{self, Stream};
 use super::state::ApiState;
 use super::types::*;
 use crate::storage::{StoredSession, StoredProcess, StoredTask};
 use crate::protocol::AgentEvent;
+use crate::sse::SseEvent;
 
 pub async fn health() -> impl axum::response::IntoResponse {
     Json(serde_json::json!({ "status": "ok" }))
@@ -446,4 +452,68 @@ pub async fn get_session_context(
         })),
         error: None,
     }
+}
+
+pub async fn session_events(
+    Path(session_id): Path<String>,
+    State(state): State<Arc<ApiState>>,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    let mut rx = state.event_tx.subscribe();
+    
+    let stream = async_stream::stream! {
+        yield Ok(Event::default().event("connected").data("Connected to session events"));
+        
+        loop {
+            match rx.recv().await {
+                Ok(event) => {
+                    let sse_event = match event {
+                        AgentEvent::Message { content, from } => {
+                            SseEvent::response(&format!("[{}] {}", from, content))
+                        }
+                        AgentEvent::Query { query_id, question } => {
+                            SseEvent::response(&format!("[Query {}] {}", query_id, question))
+                        }
+                        AgentEvent::AssignTask { task_id, title, .. } => {
+                            SseEvent::tool_call("assign_task", &serde_json::json!({
+                                "task_id": task_id,
+                                "title": title
+                            }))
+                        }
+                        AgentEvent::Remind { id, message } => {
+                            SseEvent::response(&format!("[Remind {}] {}", id, message))
+                        }
+                        AgentEvent::Interrupt { message, .. } => {
+                            SseEvent::error(&message)
+                        }
+                        AgentEvent::ProcessNotification { process_id, event, output_preview } => {
+                            SseEvent::tool_result(&format!(
+                                "[Process {}] {:?} {}",
+                                process_id,
+                                event,
+                                output_preview.unwrap_or_default()
+                            ))
+                        }
+                        AgentEvent::ConfigUpdate { .. } => {
+                            SseEvent::session_created("config_updated")
+                        }
+                        AgentEvent::ResourceWarning { resource, message } => {
+                            SseEvent::error(&format!("[{:?}] {}", resource, message))
+                        }
+                    };
+                    
+                    yield Ok(Event::default()
+                        .event(sse_event.event_type)
+                        .data(sse_event.to_sse_string()));
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                    break;
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                    continue;
+                }
+            }
+        }
+    };
+    
+    Sse::new(stream).keep_alive(KeepAlive::default())
 }

@@ -118,7 +118,7 @@ impl SseManager {
         self.channels.get(query_id)
     }
 
-    pub async fn send(&self, query_id: &str, event: SseEvent) -> crate::Result<()> {
+    pub async fn send(&self, query_id: &str, event: SseEvent) -> crate::error::Result<()> {
         if let Some(tx) = self.channels.get(query_id) {
             tx.send(event).await.map_err(|_| Error::SseChannelClosed)?;
         }

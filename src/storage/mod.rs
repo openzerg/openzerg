@@ -31,6 +31,10 @@ impl Storage {
             tool_result_file: Arc::new(RwLock::new(None)),
         }
     }
+    
+    pub fn base_path(&self) -> &PathBuf {
+        &self.base_path
+    }
 
     pub async fn init(&self) -> Result<()> {
         tokio::fs::create_dir_all(&self.base_path).await?;

@@ -1,0 +1,88 @@
+{% extends "layout.html" %}
+
+{% block title %}Providers - OpenZerg{% endblock %}
+
+{% block sidebar %}
+<div class="session-list">
+    <div class="session-group">
+        <div class="session-group-title">Actions</div>
+        <a href="/ui/providers/new" class="session-item" style="text-decoration: none; color: inherit;">
+            <span>+ New Provider</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="messages" style="padding: 0;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+        <thead>
+            <tr style="background: #16213e; text-align: left;">
+                <th style="padding: 1rem;">Name</th>
+                <th style="padding: 1rem;">Base URL</th>
+                <th style="padding: 1rem;">Model</th>
+                <th style="padding: 1rem;">API Key</th>
+                <th style="padding: 1rem;">Status</th>
+                <th style="padding: 1rem;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in providers %}
+            <tr style="border-bottom: 1px solid #0f3460;">
+                <td style="padding: 1rem;">
+                    <strong>{{ p.name }}</strong>
+                </td>
+                <td style="padding: 1rem; font-family: monospace; font-size: 0.8125rem;">
+                    {{ p.base_url }}
+                </td>
+                <td style="padding: 1rem;">
+                    <code>{{ p.model }}</code>
+                </td>
+                <td style="padding: 1rem; font-family: monospace; color: #64748b;">
+                    {{ p.api_key_masked }}
+                </td>
+                <td style="padding: 1rem;">
+                    {% if p.is_active %}
+                    <span style="color: #4ade80;">Active</span>
+                    {% else %}
+                    <span style="color: #64748b;">Inactive</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 1rem;">
+                    <a href="/ui/providers/{{ p.id }}" style="color: #4ade80; margin-right: 0.5rem;">Edit</a>
+                    <form method="POST" action="/api/providers/{{ p.id }}/delete" style="display: inline;" onsubmit="return confirm('Delete this provider?')">
+                        <button type="submit" style="background: none; border: none; color: #ef4444; cursor: pointer;">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if providers.is_empty() %}
+    <div class="empty-state">
+        <h2>No Providers</h2>
+        <p><a href="/ui/providers/new" style="color: #4ade80;">Create your first provider</a></p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block panel %}
+<div class="panel-section">
+    <h3>Supported Models</h3>
+    <div class="stat-item">
+        <code>glm-5</code>
+    </div>
+    <div class="stat-item">
+        <code>kimi-k2.5</code>
+    </div>
+</div>
+
+<div class="panel-section">
+    <h3>Help</h3>
+    <p style="font-size: 0.75rem; color: #94a3b8; line-height: 1.5;">
+        Providers configure connections to LLM APIs. Only GLM-5 and Kimi-K2.5 are supported.
+    </p>
+</div>
+{% endblock %}

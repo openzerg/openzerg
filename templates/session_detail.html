@@ -1,0 +1,130 @@
+{% extends "layout.html" %}
+
+{% block title %}Session {{ session_id_short }} - OpenZerg{% endblock %}
+
+{% block sidebar %}
+<div class="session-list">
+    <div class="session-group">
+        <div class="session-group-title">Main</div>
+        <div class="session-item {% if session_purpose == "Main" %}active{% endif %}" onclick="switchSession('{{ main_session_id }}')">
+            <span class="id">{{ main_session_id_short }}</span>
+            <span class="state">{{ main_session_state }}</span>
+        </div>
+    </div>
+    
+    {% if !queries.is_empty() %}
+    <div class="session-group">
+        <div class="session-group-title">Queries ({{ queries.len() }})</div>
+        {% for s in queries %}
+        <div class="session-item {% if session_id == s.id %}active{% endif %}" onclick="switchSession('{{ s.id }}')">
+            <span class="id">{{ s.id_short }}</span>
+            <span class="state">{{ s.state }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% if !tasks.is_empty() %}
+    <div class="session-group">
+        <div class="session-group-title">Tasks ({{ tasks.len() }})</div>
+        {% for s in tasks %}
+        <div class="session-item {% if session_id == s.id %}active{% endif %}" onclick="switchSession('{{ s.id }}')">
+            <span class="id">{{ s.id_short }}</span>
+            <span class="state">{{ s.state }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% if !workers.is_empty() %}
+    <div class="session-group">
+        <div class="session-group-title">Workers ({{ workers.len() }})</div>
+        {% for s in workers %}
+        <div class="session-item {% if session_id == s.id %}active{% endif %}" onclick="switchSession('{{ s.id }}')">
+            <span class="id">{{ s.id_short }}</span>
+            <span class="state">{{ s.state }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="messages" id="messages">
+    {% for msg in messages %}
+    <div class="message {{ msg.role|lower }}">
+        <div class="role">{{ msg.role }}</div>
+        <div class="content">{{ msg.content }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if session_purpose == "Main" %}
+<div class="input-area">
+    <form onsubmit="sendMessage(event)">
+        <input type="text" id="message-input" data-session-id="{{ session_id }}" placeholder="Type a message..." />
+        <button type="submit">Send</button>
+    </form>
+</div>
+{% else %}
+<div class="input-area readonly">
+    <p>This is a {{ session_purpose }} session. <a href="/ui/sessions/{{ main_session_id }}">Open Main Session</a> to chat.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block panel %}
+<div class="panel-section">
+    <h3>Context</h3>
+    <div class="stat-item">
+        <span class="label">Tokens</span>
+        <span class="value">{{ context.total_tokens }}</span>
+    </div>
+    <div class="progress-bar">
+        <div class="fill" style="width: {{ context.usage_percent }}%"></div>
+    </div>
+    <div class="stat-item">
+        <span class="label">Usage</span>
+        <span class="value">{{ context.usage_percent }}%</span>
+    </div>
+    <div class="stat-item">
+        <span class="label">Messages</span>
+        <span class="value">{{ context.message_count }}</span>
+    </div>
+</div>
+
+{% if !active_tasks.is_empty() %}
+<div class="panel-section">
+    <h3>Active Tasks</h3>
+    <div class="task-list">
+        {% for task in active_tasks %}
+        <div class="task-item">
+            <span class="status {{ task.status }}"></span>
+            <span class="title">{{ task.content }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<div class="panel-section">
+    <h3>Provider</h3>
+    <div class="stat-item">
+        <span class="label">Name</span>
+        <span class="value">{{ provider_name }}</span>
+    </div>
+    <div class="stat-item">
+        <span class="label">Model</span>
+        <span class="value">{{ provider_model }}</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        connectSSE('{{ session_id }}');
+    });
+</script>
+{% endblock %}

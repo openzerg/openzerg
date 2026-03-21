@@ -166,13 +166,7 @@ mod tests {
     #[test]
     fn test_systemd_executor_new() {
         let executor = SystemdExecutor::new(PathBuf::from("/tmp"));
-        assert!(true);
-    }
-
-    #[test]
-    fn test_slice_content() {
-        assert!(OPENZERG_SLICE.contains("OpenZerg"));
-        assert!(OPENZERG_SLICE.contains("MemoryMax=2G"));
+        assert_eq!(executor.slice, "openzerg.slice");
     }
 
     #[test]

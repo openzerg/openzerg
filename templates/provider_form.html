@@ -1,0 +1,116 @@
+{% extends "layout.html" %}
+
+{% block title %}{% if is_edit %}Edit Provider{% else %}New Provider{% endif %} - OpenZerg{% endblock %}
+
+{% block sidebar %}
+<div class="session-list">
+    <div class="session-group">
+        <a href="/ui/providers" class="session-item" style="text-decoration: none; color: inherit;">
+            <span>Back to Providers</span>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="messages" style="padding: 2rem;">
+    <h2 style="margin-bottom: 1.5rem;">{% if is_edit %}Edit Provider{% else %}Create Provider{% endif %}</h2>
+    
+    <form method="POST" action="{% if is_edit %}/api/providers/{{ provider.as_ref().unwrap().id }}{% else %}/api/providers{% endif %}" style="max-width: 600px;">
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: #94a3b8;">Name *</label>
+            <input type="text" name="name" required value="{{ name }}" 
+                style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #0f3460; border-radius: 4px; color: #eee;" />
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: #94a3b8;">Base URL *</label>
+            <input type="url" name="base_url" required placeholder="https://api.example.com/v1"
+                value="{{ base_url }}"
+                style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #0f3460; border-radius: 4px; color: #eee;" />
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: #94a3b8;">API Key *</label>
+            <input type="password" name="api_key" {% if !is_edit %}required{% endif %} placeholder="{% if is_edit %}Leave empty to keep existing{% else %}sk-...{% endif %}"
+                style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #0f3460; border-radius: 4px; color: #eee;" />
+        </div>
+        
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: #94a3b8;">Model *</label>
+            <select name="model" required style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #0f3460; border-radius: 4px; color: #eee;">
+                <option value="">Select a model...</option>
+                <option value="glm-5" {% if model == "glm-5" %}selected{% endif %}>glm-5</option>
+                <option value="kimi-k2.5" {% if model == "kimi-k2.5" %}selected{% endif %}>kimi-k2.5</option>
+            </select>
+        </div>
+        
+        <div style="margin-bottom: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: #94a3b8;">Max Tokens</label>
+                <input type="number" name="max_tokens" placeholder="4096"
+                    value="{{ max_tokens }}"
+                    style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #0f3460; border-radius: 4px; color: #eee;" />
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: #94a3b8;">Temperature</label>
+                <input type="number" step="0.1" name="temperature" placeholder="0.7"
+                    value="{{ temperature }}"
+                    style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #0f3460; border-radius: 4px; color: #eee;" />
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: #94a3b8;">Top P</label>
+                <input type="number" step="0.01" name="top_p" placeholder="0.95"
+                    value="{{ top_p }}"
+                    style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #0f3460; border-radius: 4px; color: #eee;" />
+            </div>
+            <div>
+                <label style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: #94a3b8;">Top K</label>
+                <input type="number" name="top_k" placeholder="50"
+                    value="{{ top_k }}"
+                    style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #0f3460; border-radius: 4px; color: #eee;" />
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.875rem; color: #94a3b8;">Extra Params (JSON)</label>
+            <input type="text" name="extra_params" placeholder='{"reasoning_effort": "high"}'
+                value="{{ extra_params }}"
+                style="width: 100%; padding: 0.75rem; background: #0f172a; border: 1px solid #0f3460; border-radius: 4px; color: #eee; font-family: monospace;" />
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" style="padding: 0.75rem 2rem; background: #4ade80; color: #0f172a; border: none; border-radius: 4px; font-weight: 600; cursor: pointer;">
+                {% if is_edit %}Update{% else %}Create{% endif %}
+            </button>
+            <a href="/ui/providers" style="padding: 0.75rem 2rem; background: #0f3460; color: #eee; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center;">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block panel %}
+<div class="panel-section">
+    <h3>Model Defaults</h3>
+    <div class="stat-item">
+        <span class="label">glm-5 temp</span>
+        <span class="value">1.0</span>
+    </div>
+    <div class="stat-item">
+        <span class="label">kimi-k2.5 temp</span>
+        <span class="value">0.6</span>
+    </div>
+</div>
+
+<div class="panel-section">
+    <h3>Extra Params</h3>
+    <p style="font-size: 0.75rem; color: #94a3b8; line-height: 1.5;">
+        GLM-5 supports <code>reasoning_effort</code>: "low", "medium", "high"
+    </p>
+</div>
+{% endblock %}

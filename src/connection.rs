@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 use crate::protocol::{Message, VmConnect, VmHeartbeat, VmStatusReport};
 use crate::event::EventDispatcher;
 use crate::error::{Result, Error};
-use crate::Config;
+use crate::config::Config;
 use crate::stats_collector;
 use crate::agent::AgentCore;
 
