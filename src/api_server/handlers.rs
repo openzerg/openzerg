@@ -527,8 +527,8 @@ pub async fn session_events(
                         AgentEvent::SessionTask { session_id, task, context: _ } => {
                             SseEvent::thinking(&format!("[SessionTask] {} -> {}", session_id, task))
                         }
-                        AgentEvent::UserMessage { content } => {
-                            SseEvent::user_message(&content)
+                        AgentEvent::UserMessage { .. } => {
+                            continue;
                         }
                     };
                     
