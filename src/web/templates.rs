@@ -27,6 +27,7 @@ pub struct SessionDetailTemplate {
     pub main_session_id: String,
     pub main_session_id_short: String,
     pub main_session_state: String,
+    pub dispatchers: Vec<SessionView>,
     pub queries: Vec<SessionView>,
     pub tasks: Vec<SessionView>,
     pub workers: Vec<SessionView>,

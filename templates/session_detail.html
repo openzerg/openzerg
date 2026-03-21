@@ -12,6 +12,18 @@
         </div>
     </div>
     
+    {% if !dispatchers.is_empty() %}
+    <div class="session-group">
+        <div class="session-group-title">Dispatcher</div>
+        {% for s in dispatchers %}
+        <div class="session-item {% if session_id == s.id %}active{% endif %}" onclick="switchSession('{{ s.id }}')">
+            <span class="id">{{ s.id_short }}</span>
+            <span class="state">{{ s.state }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
     {% if !queries.is_empty() %}
     <div class="session-group">
         <div class="session-group-title">Queries ({{ queries.len() }})</div>

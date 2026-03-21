@@ -84,6 +84,10 @@ pub async fn session_detail(
         .filter(|s| s.purpose == "Query")
         .map(SessionView::from_stored)
         .collect();
+    let dispatchers: Vec<_> = sessions.iter()
+        .filter(|s| s.purpose == "Dispatcher")
+        .map(SessionView::from_stored)
+        .collect();
     let tasks: Vec<_> = sessions.iter()
         .filter(|s| s.purpose == "Task")
         .map(SessionView::from_stored)
@@ -118,6 +122,7 @@ pub async fn session_detail(
         main_session_id,
         main_session_id_short,
         main_session_state,
+        dispatchers,
         queries,
         tasks,
         workers,
