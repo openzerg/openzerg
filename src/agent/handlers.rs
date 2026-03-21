@@ -41,18 +41,20 @@ impl AgentCore {
             crate::protocol::AgentEvent::Response { .. } => {}
             crate::protocol::AgentEvent::Done { .. } => {}
             crate::protocol::AgentEvent::Error { .. } => {}
+            crate::protocol::AgentEvent::SubSessionResult { .. } => {}
         }
     }
 
     async fn handle_query(&self, query_id: String, question: String) {
         tracing::info!("Query: {} - {}", query_id, question);
         
+        let main_session_id = self.session_manager.get_main().await.map(|s| s.id);
+        
         match self.session_manager.spawn(crate::session::SessionPurpose::Query).await {
             Ok(session_id) => {
                 self.session_manager.bind_query(&session_id, &query_id).await.ok();
                 self.session_manager.update_state(&session_id, crate::session::SessionState::Generating).await.ok();
                 
-                // Send SessionCreated event
                 let _ = self.event_tx.send(crate::protocol::AgentEvent::SessionCreated {
                     session_id: session_id.clone(),
                     purpose: "Query".to_string(),
@@ -81,13 +83,12 @@ impl AgentCore {
                 };
                 self.storage.save_message(&msg).await.ok();
                 
-                // Send Thinking event
                 let _ = self.event_tx.send(crate::protocol::AgentEvent::Thinking {
                     session_id: session_id.clone(),
                     content: "Processing your request...".to_string(),
                 });
                 
-                match self.llm_client.complete(vec![
+                let (status, summary, details) = match self.llm_client.complete(vec![
                     crate::llm::Message::user(&question),
                 ]).await {
                     Ok(response) => {
@@ -101,29 +102,43 @@ impl AgentCore {
                         };
                         self.storage.save_message(&msg).await.ok();
                         
-                        // Send Response event
                         let _ = self.event_tx.send(crate::protocol::AgentEvent::Response {
                             session_id: session_id.clone(),
-                            content: response,
+                            content: response.clone(),
                         });
+                        
+                        ("completed".to_string(), 
+                         response.chars().take(100).collect::<String>(), 
+                         response)
                     }
                     Err(e) => {
                         tracing::error!("Query failed: {}", e);
-                        // Send Error event
                         let _ = self.event_tx.send(crate::protocol::AgentEvent::Error {
                             session_id: session_id.clone(),
                             message: e.to_string(),
                         });
+                        
+                        ("failed".to_string(), e.to_string(), String::new())
                     }
-                }
+                };
                 
                 self.session_manager.complete(&session_id).await.ok();
                 self.storage.finish_session(&session_id).await.ok();
                 
-                // Send Done event
                 let _ = self.event_tx.send(crate::protocol::AgentEvent::Done {
                     session_id: session_id.clone(),
                 });
+                
+                if let Some(parent_id) = main_session_id {
+                    let _ = self.event_tx.send(crate::protocol::AgentEvent::SubSessionResult {
+                        parent_session_id: parent_id,
+                        child_session_id: session_id.clone(),
+                        child_session_type: "Query".to_string(),
+                        status,
+                        summary,
+                        details,
+                    });
+                }
             }
             Err(e) => {
                 tracing::error!("Failed to create session for query: {}", e);

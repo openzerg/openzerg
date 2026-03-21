@@ -22,7 +22,7 @@ pub async fn list_sessions(
     State(state): State<Arc<ApiState>>,
     Query(query): Query<PaginationQuery>,
 ) -> impl axum::response::IntoResponse {
-    match state.storage.load_sessions().await {
+    match state.storage.load_visible_sessions().await {
         Ok(mut sessions) => {
             let offset = query.offset.unwrap_or(0);
             let limit = query.limit.unwrap_or(100);
@@ -514,6 +514,12 @@ pub async fn session_events(
                         }
                         AgentEvent::Error { session_id, message } => {
                             SseEvent::error(&format!("[{}] {}", session_id, message))
+                        }
+                        AgentEvent::SubSessionResult { parent_session_id, child_session_id, child_session_type, status, summary, details } => {
+                            SseEvent::response(&format!(
+                                "[SubSession] {} {} -> {}: {} | {}",
+                                child_session_type, child_session_id, parent_session_id, status, summary
+                            ))
                         }
                     };
                     

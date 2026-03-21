@@ -127,6 +127,15 @@ pub enum AgentEvent {
         session_id: String,
         message: String,
     },
+
+    SubSessionResult {
+        parent_session_id: String,
+        child_session_id: String,
+        child_session_type: String,
+        status: String,
+        summary: String,
+        details: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -486,6 +486,59 @@ impl Storage {
         
         Ok(result.rows_affected() as usize)
     }
+
+    pub async fn load_visible_sessions(&self) -> Result<Vec<StoredSession>> {
+        let rows: Vec<StoredSessionRow> = sqlx::query_as(r#"
+            SELECT * FROM sessions 
+            WHERE purpose IN ('Main', 'Dispatcher') 
+               OR state NOT IN ('Completed', 'Failed', 'Cancelled')
+            ORDER BY 
+                CASE purpose 
+                    WHEN 'Main' THEN 1 
+                    WHEN 'Dispatcher' THEN 2 
+                    ELSE 3 
+                END,
+                created_at DESC
+        "#)
+        .fetch_all(self.pool())
+        .await?;
+        
+        Ok(rows.into_iter().map(|r| r.into()).collect())
+    }
+
+    pub async fn get_session_last_message_time(&self, session_id: &str) -> Result<Option<chrono::DateTime<chrono::Utc>>> {
+        let row: Option<(String,)> = sqlx::query_as(r#"
+            SELECT timestamp FROM messages 
+            WHERE session_id = ? 
+            ORDER BY timestamp DESC 
+            LIMIT 1
+        "#)
+        .bind(session_id)
+        .fetch_optional(self.pool())
+        .await?;
+        
+        match row {
+            Some((ts,)) => {
+                let dt = chrono::DateTime::parse_from_rfc3339(&ts)
+                    .map(|d| d.with_timezone(&chrono::Utc))
+                    .ok();
+                Ok(dt)
+            }
+            None => Ok(None),
+        }
+    }
+
+    pub async fn load_sessions_with_last_activity(&self) -> Result<Vec<(StoredSession, Option<chrono::DateTime<chrono::Utc>>)>> {
+        let sessions = self.load_visible_sessions().await?;
+        let mut result = Vec::new();
+        
+        for session in sessions {
+            let last_activity = self.get_session_last_message_time(&session.id).await?;
+            result.push((session, last_activity));
+        }
+        
+        Ok(result)
+    }
 }
 
 #[cfg(test)]
