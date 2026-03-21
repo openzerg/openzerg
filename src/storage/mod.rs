@@ -475,10 +475,8 @@ impl Storage {
         let now = chrono::Utc::now().to_rfc3339();
         let result = sqlx::query(r#"
             UPDATE sessions 
-            SET state = 'Completed', finished_at = ?
-            WHERE purpose = 'Query' 
-              AND state = 'Generating' 
-              AND message_count >= 2
+            SET state = 'Interrupted', finished_at = ?
+            WHERE state = 'Generating'
         "#)
         .bind(&now)
         .execute(self.pool())
@@ -491,7 +489,7 @@ impl Storage {
         let rows: Vec<StoredSessionRow> = sqlx::query_as(r#"
             SELECT * FROM sessions 
             WHERE purpose IN ('Main', 'Dispatcher') 
-               OR state NOT IN ('Completed', 'Failed', 'Cancelled')
+               OR state NOT IN ('Completed', 'Failed', 'Cancelled', 'Interrupted')
             ORDER BY 
                 CASE purpose 
                     WHEN 'Main' THEN 1 
