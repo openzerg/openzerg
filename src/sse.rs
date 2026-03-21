@@ -14,13 +14,13 @@ pub struct SseEvent {
 #[serde(untagged)]
 pub enum SseEventData {
     SessionCreated { session_id: String },
-    Thinking { content: String },
+    Thinking { content: String, session_id: Option<String> },
     ToolCall { tool: String, args: serde_json::Value },
     ToolResult { content: String },
-    Response { content: String },
+    Response { content: String, session_id: Option<String> },
     UserMessage { content: String },
     Done { session_id: String },
-    Error { message: String },
+    Error { message: String, session_id: Option<String> },
 }
 
 impl SseEvent {
@@ -33,11 +33,12 @@ impl SseEvent {
         }
     }
 
-    pub fn thinking(content: &str) -> Self {
+    pub fn thinking(content: &str, session_id: Option<String>) -> Self {
         Self {
             event_type: "thinking",
             data: SseEventData::Thinking {
                 content: content.to_string(),
+                session_id,
             },
         }
     }
@@ -61,11 +62,12 @@ impl SseEvent {
         }
     }
 
-    pub fn response(content: &str) -> Self {
+    pub fn response(content: &str, session_id: Option<String>) -> Self {
         Self {
             event_type: "response",
             data: SseEventData::Response {
                 content: content.to_string(),
+                session_id,
             },
         }
     }
@@ -88,11 +90,12 @@ impl SseEvent {
         }
     }
 
-    pub fn error(message: &str) -> Self {
+    pub fn error(message: &str, session_id: Option<String>) -> Self {
         Self {
             event_type: "error",
             data: SseEventData::Error {
                 message: message.to_string(),
+                session_id,
             },
         }
     }

@@ -471,11 +471,11 @@ pub async fn session_events(
                             if from == "user" {
                                 SseEvent::user_message(&content)
                             } else {
-                                SseEvent::response(&format!("[{}] {}", from, content))
+                                SseEvent::response(&content, None)
                             }
                         }
                         AgentEvent::Query { query_id, question } => {
-                            SseEvent::response(&format!("[Query {}] {}", query_id, question))
+                            SseEvent::response(&question, Some(query_id))
                         }
                         AgentEvent::AssignTask { task_id, title, .. } => {
                             SseEvent::tool_call("assign_task", &serde_json::json!({
@@ -484,10 +484,10 @@ pub async fn session_events(
                             }))
                         }
                         AgentEvent::Remind { id, message } => {
-                            SseEvent::response(&format!("[Remind {}] {}", id, message))
+                            SseEvent::response(&message, Some(id))
                         }
                         AgentEvent::Interrupt { message, .. } => {
-                            SseEvent::error(&message)
+                            SseEvent::error(&message, None)
                         }
                         AgentEvent::ProcessNotification { process_id, event, output_preview } => {
                             SseEvent::tool_result(&format!(
@@ -501,31 +501,31 @@ pub async fn session_events(
                             SseEvent::session_created("config_updated")
                         }
                         AgentEvent::ResourceWarning { resource, message } => {
-                            SseEvent::error(&format!("[{:?}] {}", resource, message))
+                            SseEvent::error(&format!("[{:?}] {}", resource, message), None)
                         }
                         AgentEvent::SessionCreated { session_id, purpose } => {
                             SseEvent::session_created(&format!("{}:{}", session_id, purpose))
                         }
-                        AgentEvent::Thinking { session_id: _, content } => {
-                            SseEvent::thinking(&content)
+                        AgentEvent::Thinking { session_id, content } => {
+                            SseEvent::thinking(&content, Some(session_id))
                         }
-                        AgentEvent::Response { session_id: _, content } => {
-                            SseEvent::response(&content)
+                        AgentEvent::Response { session_id, content } => {
+                            SseEvent::response(&content, Some(session_id))
                         }
                         AgentEvent::Done { session_id } => {
                             SseEvent::done(&session_id)
                         }
                         AgentEvent::Error { session_id, message } => {
-                            SseEvent::error(&format!("[{}] {}", session_id, message))
+                            SseEvent::error(&message, Some(session_id))
                         }
                         AgentEvent::SubSessionResult { parent_session_id, child_session_id, child_session_type, status, summary, details: _ } => {
                             SseEvent::response(&format!(
-                                "[SubSession] {} {} -> {}: {} | {}",
-                                child_session_type, child_session_id, parent_session_id, status, summary
-                            ))
+                                "{}: {} | {}",
+                                child_session_type, status, summary
+                            ), Some(child_session_id))
                         }
-                        AgentEvent::SessionTask { session_id: _, task, context: _ } => {
-                            SseEvent::thinking(&format!("Task: {}", task))
+                        AgentEvent::SessionTask { session_id, task, context: _ } => {
+                            SseEvent::thinking(&task, Some(session_id))
                         }
                         AgentEvent::UserMessage { .. } => {
                             continue;

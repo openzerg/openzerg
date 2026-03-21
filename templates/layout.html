@@ -96,7 +96,10 @@
             
             eventSource.addEventListener('thinking', (e) => {
                 const data = JSON.parse(e.data);
-                appendThinking(data.content);
+                // Only show thinking for current session or if session_id matches
+                if (!data.session_id || data.session_id === currentSessionId) {
+                    appendThinking(data.content);
+                }
             });
             
             eventSource.addEventListener('tool_call', (e) => {
@@ -111,7 +114,10 @@
             
             eventSource.addEventListener('response', (e) => {
                 const data = JSON.parse(e.data);
-                appendResponse(data.content);
+                // Only show response for current session or if session_id matches
+                if (!data.session_id || data.session_id === currentSessionId) {
+                    appendResponse(data.content);
+                }
             });
             
             eventSource.addEventListener('done', (e) => {
