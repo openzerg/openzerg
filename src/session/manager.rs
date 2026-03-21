@@ -187,6 +187,21 @@ impl SessionManager {
         }
     }
 
+    pub async fn set_main_id(&self, id: &str) {
+        let mut main_id = self.main_session_id.write().await;
+        *main_id = Some(id.to_string());
+    }
+
+    pub async fn set_dispatcher_id(&self, id: &str) {
+        let mut dispatcher_id = self.dispatcher_session_id.write().await;
+        *dispatcher_id = Some(id.to_string());
+    }
+
+    pub async fn set_worker_id(&self, id: &str) {
+        let mut worker_id = self.worker_session_id.write().await;
+        *worker_id = Some(id.to_string());
+    }
+
     pub async fn cleanup_finished(&self) -> usize {
         let mut sessions = self.sessions.write().await;
         let main_id = self.main_session_id.read().await.clone();
