@@ -13,7 +13,15 @@
         pkgs = import nixpkgs { inherit system; };
         craneLib = crane.mkLib pkgs;
 
-        src = pkgs.lib.cleanSource ./.;
+        src = pkgs.lib.cleanSourceWith {
+          src = ./.;
+          filter = path: type:
+            let
+              baseName = baseNameOf (toString path);
+            in
+            # Keep all files except .git and result
+            baseName != ".git" && baseName != "result";
+        };
 
         commonArgs = {
           inherit src;
