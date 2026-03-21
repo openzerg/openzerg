@@ -532,9 +532,10 @@ pub async fn session_events(
                         }
                     };
                     
+                    let data_json = serde_json::to_string(&sse_event.data).unwrap_or_default();
                     yield Ok(Event::default()
                         .event(sse_event.event_type)
-                        .data(sse_event.to_sse_string()));
+                        .data(data_json));
                 }
                 Err(tokio::sync::broadcast::error::RecvError::Closed) => {
                     break;
