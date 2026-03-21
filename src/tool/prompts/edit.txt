@@ -1,8 +1,0 @@
-Performs exact string replacements in files.
-
-Usage:
-- You must use this tool when you need to make edits to existing files.
-- The edit will FAIL if oldString is not found in the file.
-- The edit will FAIL if oldString is found multiple times (unless replaceAll=true).
-- oldString and newString must be different.
-- Prefer editing existing files in the codebase. NEVER write new files unless explicitly required.

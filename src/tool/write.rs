@@ -7,7 +7,7 @@ use crate::error::{Error, Result};
 use super::traits::{Tool, ToolContext, ToolResult};
 use super::schema::generate_schema;
 
-const DESCRIPTION: &str = include_str!("prompts/write.txt");
+const DESCRIPTION: &str = include_str!("prompts/write.md");
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct WriteParams {

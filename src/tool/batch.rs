@@ -8,7 +8,7 @@ use super::schema::generate_schema;
 
 const MIN_BATCH_SIZE: usize = 1;
 const MAX_BATCH_SIZE: usize = 25;
-const DESCRIPTION: &str = include_str!("prompts/batch.txt");
+const DESCRIPTION: &str = include_str!("prompts/batch.md");
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct BatchParams {

@@ -8,7 +8,7 @@ use super::traits::{Tool, ToolContext, ToolResult};
 use super::schema::generate_schema;
 use super::truncation::MAX_BYTES;
 
-const DESCRIPTION: &str = include_str!("prompts/glob.txt");
+const DESCRIPTION: &str = include_str!("prompts/glob.md");
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct GlobParams {

@@ -1,7 +1,0 @@
-Fast content search tool that searches file contents using regular expressions.
-
-Usage:
-- Supports full regex syntax.
-- Filter files by pattern with the include parameter.
-- Returns file paths and line numbers with at least one match.
-- Use this tool when you need to find specific patterns in code.

@@ -6,6 +6,8 @@ use crate::task::{Task, TaskManager};
 use crate::error::Result;
 use serde::{Deserialize, Serialize};
 
+const PLANNER_PROMPT: &str = include_str!("prompts/planner.md");
+
 pub struct ThinkingLayer {
     llm_client: Arc<LLMClient>,
     session_manager: Arc<SessionManager>,
@@ -48,31 +50,8 @@ impl ThinkingLayer {
     }
 
     fn build_planning_prompt(&self, event: &AgentEvent, context: &ThinkingContext) -> Vec<crate::llm::Message> {
-        let system_prompt = r#"你是一个任务规划器。你的职责是：
-1. 分析收到的消息或任务
-2. 决定如何处理
-3. 输出任务分解和分配方案
-
-你可以选择：
-- 将任务分配给现有的空闲 Session
-- 创建新的 Session 处理
-- 将任务放入队列稍后处理
-
-输出 JSON 格式：
-{
-  "analysis": "对消息的分析",
-  "tasks": [
-    {
-      "title": "任务标题",
-      "description": "任务描述", 
-      "priority": "high|medium|low",
-      "assign_to": "session-id 或 null 表示创建新 session"
-    }
-  ]
-}"#;
-
         let context_str = format!(
-            "## 当前状态\n\n### Sessions:\n{}\n\n### Tasks:\n{}",
+            "## Current State\n\n### Sessions:\n{}\n\n### Tasks:\n{}",
             serde_json::to_string_pretty(&context.sessions).unwrap_or_default(),
             serde_json::to_string_pretty(&context.tasks).unwrap_or_default(),
         );
@@ -80,8 +59,8 @@ impl ThinkingLayer {
         let event_str = serde_json::to_string_pretty(event).unwrap_or_default();
 
         vec![
-            crate::llm::Message::system(system_prompt),
-            crate::llm::Message::user(&format!("{}\n\n## 收到的事件\n\n{}", context_str, event_str)),
+            crate::llm::Message::system(PLANNER_PROMPT),
+            crate::llm::Message::user(&format!("{}\n\n## Received Event\n\n{}", context_str, event_str)),
         ]
     }
 

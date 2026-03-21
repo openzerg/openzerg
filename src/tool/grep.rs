@@ -8,7 +8,7 @@ use super::traits::{Tool, ToolContext, ToolResult};
 use super::schema::generate_schema;
 use super::truncation::{truncate_output, MAX_BYTES};
 
-const DESCRIPTION: &str = include_str!("prompts/grep.txt");
+const DESCRIPTION: &str = include_str!("prompts/grep.md");
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct GrepParams {

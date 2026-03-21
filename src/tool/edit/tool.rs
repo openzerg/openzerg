@@ -9,7 +9,7 @@ use super::super::schema::generate_schema;
 use super::replacer::get_replacers;
 use super::diff::create_diff;
 
-const DESCRIPTION: &str = include_str!("../prompts/edit.txt");
+const DESCRIPTION: &str = include_str!("../prompts/edit.md");
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct EditParams {

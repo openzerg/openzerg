@@ -7,7 +7,7 @@ use super::traits::{Tool, ToolContext, ToolResult};
 use super::schema::generate_schema;
 use super::truncation::{truncate_output, MAX_BYTES};
 
-const DESCRIPTION: &str = include_str!("prompts/webfetch.txt");
+const DESCRIPTION: &str = include_str!("prompts/webfetch.md");
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct WebFetchParams {

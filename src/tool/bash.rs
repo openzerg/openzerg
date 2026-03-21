@@ -10,7 +10,7 @@ use super::schema::generate_schema;
 use super::truncation::{truncate_output, MAX_BYTES};
 
 const DEFAULT_TIMEOUT_MS: u64 = 120_000;
-const DESCRIPTION: &str = include_str!("prompts/bash.txt");
+const DESCRIPTION: &str = include_str!("prompts/bash.md");
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct BashParams {

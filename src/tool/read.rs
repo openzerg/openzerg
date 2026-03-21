@@ -9,7 +9,7 @@ use super::schema::generate_schema;
 use super::truncation::{truncate_output, MAX_BYTES, MAX_LINE_LENGTH};
 
 const DEFAULT_READ_LIMIT: usize = 2000;
-const DESCRIPTION: &str = include_str!("prompts/read.txt");
+const DESCRIPTION: &str = include_str!("prompts/read.md");
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub struct ReadParams {

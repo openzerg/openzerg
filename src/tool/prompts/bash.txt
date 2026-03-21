@@ -1,8 +1,0 @@
-Executes a given bash command in a persistent shell session with optional timeout.
-
-Usage:
-- All commands run in workspace directory by default. Use the workdir parameter to run in a different directory.
-- IMPORTANT: This tool is for terminal operations like git, npm, docker, etc. DO NOT use it for file operations.
-- ALWAYS quote file paths that contain spaces with double quotes.
-- The command will be executed via systemd-run with cgroup isolation to ensure complete process control.
-- Processes cannot escape the cgroup (nohup, double fork, etc. are contained).
