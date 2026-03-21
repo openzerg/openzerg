@@ -110,7 +110,11 @@ impl AgentCore {
             tracing::info!("Fixed {} stale session states", fixed);
         }
         
-        self.session_manager.init_main().await;
+        // Load existing sessions from storage instead of creating new ones
+        if self.session_manager.load_main_from_storage(&self.storage).await.is_none() {
+            self.session_manager.init_main().await;
+        }
+        
         self.ensure_workspace_structure().await?;
         self.register_tools().await;
         self.systemd_executor.ensure_slice().await?;

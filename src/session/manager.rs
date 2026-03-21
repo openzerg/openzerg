@@ -46,6 +46,18 @@ impl SessionManager {
         id
     }
     
+    pub async fn load_main_from_storage(&self, storage: &crate::storage::Storage) -> Option<String> {
+        if let Ok(sessions) = storage.load_sessions().await {
+            if let Some(main) = sessions.iter().find(|s| s.purpose == "Main") {
+                let mut main_id = self.main_session_id.write().await;
+                *main_id = Some(main.id.clone());
+                tracing::info!("Loaded Main session from storage: {}", main.id);
+                return Some(main.id.clone());
+            }
+        }
+        None
+    }
+    
     async fn init_dispatcher(&self) -> String {
         let mut sessions = self.sessions.write().await;
         let mut dispatcher_id = self.dispatcher_session_id.write().await;

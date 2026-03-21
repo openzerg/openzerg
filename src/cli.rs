@@ -894,10 +894,7 @@ async fn ensure_main_session(state: &std::sync::Arc<crate::api_server::ApiState>
     let dispatcher_session = sessions.iter().find(|s| s.purpose == "Dispatcher");
     let worker_session = sessions.iter().find(|s| s.purpose == "Worker");
     
-    if let Some(main) = main_session {
-        state.session_manager.set_main_id(&main.id).await;
-        tracing::info!("Loaded Main session: {}", main.id);
-    } else {
+    if main_session.is_none() {
         let id = state.session_manager.init_main().await;
         let system_prompt = include_str!("agent/prompts/sessions/main.md").to_string();
         
@@ -918,46 +915,44 @@ async fn ensure_main_session(state: &std::sync::Arc<crate::api_server::ApiState>
         tracing::info!("Created Main session: {}", id);
     }
     
-    if let Some(dispatcher) = dispatcher_session {
-        state.session_manager.set_dispatcher_id(&dispatcher.id).await;
-        tracing::info!("Loaded Dispatcher session: {}", dispatcher.id);
-    } else if let Some(dispatcher) = state.session_manager.get_dispatcher().await {
-        let system_prompt = include_str!("agent/prompts/sessions/dispatcher.md").to_string();
-        let session = crate::storage::StoredSession {
-            id: dispatcher.id.clone(),
-            purpose: "Dispatcher".to_string(),
-            state: "Idle".to_string(),
-            created_at: chrono::Utc::now(),
-            started_at: None,
-            finished_at: None,
-            task_id: None,
-            query_id: None,
-            message_count: 0,
-            system_prompt,
-        };
-        state.storage.save_session(&session).await?;
-        tracing::info!("Created Dispatcher session: {}", dispatcher.id);
+    if dispatcher_session.is_none() {
+        if let Some(dispatcher) = state.session_manager.get_dispatcher().await {
+            let system_prompt = include_str!("agent/prompts/sessions/dispatcher.md").to_string();
+            let session = crate::storage::StoredSession {
+                id: dispatcher.id.clone(),
+                purpose: "Dispatcher".to_string(),
+                state: "Idle".to_string(),
+                created_at: chrono::Utc::now(),
+                started_at: None,
+                finished_at: None,
+                task_id: None,
+                query_id: None,
+                message_count: 0,
+                system_prompt,
+            };
+            state.storage.save_session(&session).await?;
+            tracing::info!("Created Dispatcher session: {}", dispatcher.id);
+        }
     }
     
-    if let Some(worker) = worker_session {
-        state.session_manager.set_worker_id(&worker.id).await;
-        tracing::info!("Loaded Worker session: {}", worker.id);
-    } else if let Some(worker) = state.session_manager.get_worker().await {
-        let system_prompt = include_str!("agent/prompts/sessions/task.md").to_string();
-        let session = crate::storage::StoredSession {
-            id: worker.id.clone(),
-            purpose: "Worker".to_string(),
-            state: "Idle".to_string(),
-            created_at: chrono::Utc::now(),
-            started_at: None,
-            finished_at: None,
-            task_id: None,
-            query_id: None,
-            message_count: 0,
-            system_prompt,
-        };
-        state.storage.save_session(&session).await?;
-        tracing::info!("Created Worker session: {}", worker.id);
+    if worker_session.is_none() {
+        if let Some(worker) = state.session_manager.get_worker().await {
+            let system_prompt = include_str!("agent/prompts/sessions/task.md").to_string();
+            let session = crate::storage::StoredSession {
+                id: worker.id.clone(),
+                purpose: "Worker".to_string(),
+                state: "Idle".to_string(),
+                created_at: chrono::Utc::now(),
+                started_at: None,
+                finished_at: None,
+                task_id: None,
+                query_id: None,
+                message_count: 0,
+                system_prompt,
+            };
+            state.storage.save_session(&session).await?;
+            tracing::info!("Created Worker session: {}", worker.id);
+        }
     }
     
     Ok(())
