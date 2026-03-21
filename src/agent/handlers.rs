@@ -1,47 +1,52 @@
 use super::core::AgentCore;
+use crate::protocol::AgentEvent;
+use crate::session::SessionPurpose;
 
 impl AgentCore {
-    pub async fn handle_event(&self, event: crate::protocol::AgentEvent) {
+    pub async fn handle_event(&self, event: AgentEvent) {
         match event {
-            crate::protocol::AgentEvent::Query { query_id, question } => {
+            AgentEvent::Query { query_id, question } => {
                 self.handle_query(query_id, question).await;
             }
 
-            crate::protocol::AgentEvent::Message { content, from } => {
+            AgentEvent::Message { content, from } => {
                 self.handle_message(content, from).await;
             }
 
-            crate::protocol::AgentEvent::AssignTask { task_id, title, description, priority, deadline, context } => {
+            AgentEvent::SessionTask { session_id, task, context } => {
+                self.handle_session_task(session_id, task, context).await;
+            }
+
+            AgentEvent::AssignTask { task_id, title, description, priority, deadline, context } => {
                 self.handle_assign_task(task_id, title, description, priority, deadline, context).await;
             }
 
-            crate::protocol::AgentEvent::Remind { id, message } => {
+            AgentEvent::Remind { id, message } => {
                 self.handle_remind(id, message).await;
             }
 
-            crate::protocol::AgentEvent::ConfigUpdate { llm_base_url, llm_api_key, llm_model } => {
+            AgentEvent::ConfigUpdate { llm_base_url, llm_api_key, llm_model } => {
                 self.handle_config_update(llm_base_url, llm_api_key, llm_model).await;
             }
 
-            crate::protocol::AgentEvent::ResourceWarning { resource, message } => {
+            AgentEvent::ResourceWarning { resource, message } => {
                 tracing::warn!("Resource warning ({:?}): {}", resource, message);
             }
 
-            crate::protocol::AgentEvent::ProcessNotification { process_id, event, output_preview: _ } => {
+            AgentEvent::ProcessNotification { process_id, event, output_preview: _ } => {
                 tracing::debug!("Process {}: {:?}", process_id, event);
             }
 
-            crate::protocol::AgentEvent::Interrupt { message, target_session } => {
+            AgentEvent::Interrupt { message, target_session } => {
                 tracing::info!("Interrupt: {} (target: {:?})", message, target_session);
             }
 
-            // SSE events are handled by the API server, not the agent
-            crate::protocol::AgentEvent::SessionCreated { .. } => {}
-            crate::protocol::AgentEvent::Thinking { .. } => {}
-            crate::protocol::AgentEvent::Response { .. } => {}
-            crate::protocol::AgentEvent::Done { .. } => {}
-            crate::protocol::AgentEvent::Error { .. } => {}
-            crate::protocol::AgentEvent::SubSessionResult { .. } => {}
+            AgentEvent::SessionCreated { .. } => {}
+            AgentEvent::Thinking { .. } => {}
+            AgentEvent::Response { .. } => {}
+            AgentEvent::Done { .. } => {}
+            AgentEvent::Error { .. } => {}
+            AgentEvent::SubSessionResult { .. } => {}
         }
     }
 
@@ -62,16 +67,17 @@ impl AgentCore {
             self.storage.save_message(&msg).await.ok();
         }
         
-        match self.session_manager.spawn(crate::session::SessionPurpose::Query).await {
+        match self.session_manager.spawn(SessionPurpose::Query).await {
             Ok(session_id) => {
                 self.session_manager.bind_query(&session_id, &query_id).await.ok();
                 self.session_manager.update_state(&session_id, crate::session::SessionState::Generating).await.ok();
                 
-                let _ = self.event_tx.send(crate::protocol::AgentEvent::SessionCreated {
+                let _ = self.event_tx.send(AgentEvent::SessionCreated {
                     session_id: session_id.clone(),
                     purpose: "Query".to_string(),
                 });
                 
+                let system_prompt = include_str!("prompts/sessions/query.md").to_string();
                 let session = crate::storage::StoredSession {
                     id: session_id.clone(),
                     purpose: "Query".to_string(),
@@ -82,11 +88,11 @@ impl AgentCore {
                     task_id: None,
                     query_id: Some(query_id.clone()),
                     message_count: 0,
-                    system_prompt: include_str!("prompts/sessions/query.md").to_string(),
+                    system_prompt: system_prompt.clone(),
                 };
                 self.storage.save_session(&session).await.ok();
                 
-                let _ = self.event_tx.send(crate::protocol::AgentEvent::Thinking {
+                let _ = self.event_tx.send(AgentEvent::Thinking {
                     session_id: session_id.clone(),
                     content: "Processing your request...".to_string(),
                 });
@@ -95,7 +101,7 @@ impl AgentCore {
                     crate::llm::Message::user(&question),
                 ]).await {
                     Ok(response) => {
-                        let _ = self.event_tx.send(crate::protocol::AgentEvent::Response {
+                        let _ = self.event_tx.send(AgentEvent::Response {
                             session_id: session_id.clone(),
                             content: response.clone(),
                         });
@@ -106,7 +112,7 @@ impl AgentCore {
                     }
                     Err(e) => {
                         tracing::error!("Query failed: {}", e);
-                        let _ = self.event_tx.send(crate::protocol::AgentEvent::Error {
+                        let _ = self.event_tx.send(AgentEvent::Error {
                             session_id: session_id.clone(),
                             message: e.to_string(),
                         });
@@ -118,7 +124,7 @@ impl AgentCore {
                 self.session_manager.complete(&session_id).await.ok();
                 self.storage.finish_session(&session_id).await.ok();
                 
-                let _ = self.event_tx.send(crate::protocol::AgentEvent::Done {
+                let _ = self.event_tx.send(AgentEvent::Done {
                     session_id: session_id.clone(),
                 });
                 
@@ -135,7 +141,7 @@ impl AgentCore {
                         self.storage.save_message(&msg).await.ok();
                     }
                     
-                    let _ = self.event_tx.send(crate::protocol::AgentEvent::SubSessionResult {
+                    let _ = self.event_tx.send(AgentEvent::SubSessionResult {
                         parent_session_id: main_id.clone(),
                         child_session_id: session_id.clone(),
                         child_session_type: "Query".to_string(),
@@ -154,7 +160,8 @@ impl AgentCore {
     async fn handle_message(&self, content: String, from: String) {
         tracing::info!("Message from {}: {}", from, content);
         
-        if let Some(main) = self.session_manager.get_main().await {
+        let main_session = self.session_manager.get_main().await;
+        if let Some(ref main) = main_session {
             let msg = crate::storage::StoredMessage {
                 id: uuid::Uuid::new_v4().to_string(),
                 session_id: main.id.clone(),
@@ -176,72 +183,139 @@ impl AgentCore {
         };
         self.storage.save_activity(&activity).await.ok();
         
-        match self.thinking_layer.process_event(crate::protocol::AgentEvent::Message { content, from }).await {
+        let _ = self.event_tx.send(AgentEvent::Thinking {
+            session_id: self.session_manager.get_dispatcher().await.map(|d| d.id).unwrap_or_default(),
+            content: "Analyzing your request...".to_string(),
+        });
+        
+        match self.thinking_layer.process_event(AgentEvent::Message { content: content.clone(), from }).await {
             Ok(plan) => {
                 tracing::info!("Analysis: {}", plan.analysis);
                 
                 for mut task in plan.tasks {
                     let task_id = task.id.clone();
-                    
-                    match plan.assignments.get(&task_id) {
+                    let session_id = match plan.assignments.get(&task_id) {
+                        Some(crate::thinking::Assignment::ToSession(sid)) => Some(sid.clone()),
                         Some(crate::thinking::Assignment::NewSession) => {
-                            match self.session_manager.spawn(crate::session::SessionPurpose::Task).await {
-                                Ok(session_id) => {
-                                    task.session_id = Some(session_id.clone());
-                                    task.status = crate::task::TaskStatus::Assigned;
-                                    let stored_task = crate::storage::StoredTask {
-                                        id: task.id.clone(),
-                                        content: task.title.clone(),
-                                        status: format!("{:?}", task.status),
-                                        priority: format!("{:?}", task.priority),
-                                        session_id: Some(session_id.clone()),
-                                        created_at: chrono::Utc::now(),
-                                        updated_at: chrono::Utc::now(),
-                                        completed_at: None,
-                                    };
-                                    self.storage.save_task(&stored_task).await.ok();
-                                    self.session_manager.bind_task(&session_id, &task_id).await.ok();
+                            match self.session_manager.spawn(SessionPurpose::Task).await {
+                                Ok(sid) => {
+                                    task.session_id = Some(sid.clone());
+                                    Some(sid)
                                 }
                                 Err(e) => {
                                     tracing::error!("Failed to spawn session: {}", e);
+                                    None
                                 }
                             }
                         }
-                        Some(crate::thinking::Assignment::ToSession(session_id)) => {
-                            task.session_id = Some(session_id.clone());
-                            task.status = crate::task::TaskStatus::Assigned;
-                            let stored_task = crate::storage::StoredTask {
-                                id: task.id.clone(),
-                                content: task.title.clone(),
-                                status: format!("{:?}", task.status),
-                                priority: format!("{:?}", task.priority),
-                                session_id: Some(session_id.clone()),
-                                created_at: chrono::Utc::now(),
-                                updated_at: chrono::Utc::now(),
-                                completed_at: None,
-                            };
-                            self.storage.save_task(&stored_task).await.ok();
-                            self.session_manager.bind_task(session_id, &task_id).await.ok();
-                        }
-                        _ => {
-                            task.status = crate::task::TaskStatus::Pending;
-                            let stored_task = crate::storage::StoredTask {
-                                id: task.id.clone(),
-                                content: task.title.clone(),
-                                status: format!("{:?}", task.status),
-                                priority: format!("{:?}", task.priority),
-                                session_id: None,
-                                created_at: chrono::Utc::now(),
-                                updated_at: chrono::Utc::now(),
-                                completed_at: None,
-                            };
-                            self.storage.save_task(&stored_task).await.ok();
-                        }
+                        _ => None,
+                    };
+                    
+                    if let Some(sid) = session_id {
+                        task.status = crate::task::TaskStatus::Assigned;
+                        let stored_task = crate::storage::StoredTask {
+                            id: task.id.clone(),
+                            content: task.title.clone(),
+                            status: format!("{:?}", task.status),
+                            priority: format!("{:?}", task.priority),
+                            session_id: Some(sid.clone()),
+                            created_at: chrono::Utc::now(),
+                            updated_at: chrono::Utc::now(),
+                            completed_at: None,
+                        };
+                        self.storage.save_task(&stored_task).await.ok();
+                        self.session_manager.bind_task(&sid, &task_id).await.ok();
+                        
+                        let _ = self.event_tx.send(AgentEvent::SessionTask {
+                            session_id: sid.clone(),
+                            task: task.title.clone(),
+                            context: None,
+                        });
+                    } else {
+                        task.status = crate::task::TaskStatus::Pending;
+                        let stored_task = crate::storage::StoredTask {
+                            id: task.id.clone(),
+                            content: task.title.clone(),
+                            status: format!("{:?}", task.status),
+                            priority: format!("{:?}", task.priority),
+                            session_id: None,
+                            created_at: chrono::Utc::now(),
+                            updated_at: chrono::Utc::now(),
+                            completed_at: None,
+                        };
+                        self.storage.save_task(&stored_task).await.ok();
                     }
                 }
             }
             Err(e) => {
                 tracing::error!("Thinking layer failed: {}", e);
+                
+                if let Some(main) = main_session {
+                    let _ = self.event_tx.send(AgentEvent::SessionTask {
+                        session_id: main.id.clone(),
+                        task: content,
+                        context: None,
+                    });
+                }
+            }
+        }
+    }
+
+    async fn handle_session_task(&self, session_id: String, task: String, _context: Option<serde_json::Value>) {
+        tracing::info!("SessionTask for {}: {}", session_id, task);
+        
+        let session = self.session_manager.get(&session_id).await;
+        if session.is_none() {
+            tracing::error!("Session not found: {}", session_id);
+            return;
+        }
+        
+        let session = session.unwrap();
+        let purpose = session.purpose;
+        
+        self.session_manager.update_state(&session_id, crate::session::SessionState::Generating).await.ok();
+        self.storage.update_session_state(&session_id, "Generating").await.ok();
+        
+        let _ = self.event_tx.send(AgentEvent::Thinking {
+            session_id: session_id.clone(),
+            content: format!("Working on: {}", task),
+        });
+        
+        let system_prompt = self.get_system_prompt(purpose).await;
+        
+        match self.session_processor.process_with_history(&session_id, &task, system_prompt.as_deref()).await {
+            Ok(response) => {
+                let msg = crate::storage::StoredMessage {
+                    id: uuid::Uuid::new_v4().to_string(),
+                    session_id: session_id.clone(),
+                    role: crate::storage::MessageRole::Assistant,
+                    content: response.clone(),
+                    timestamp: chrono::Utc::now(),
+                    tool_calls: None,
+                };
+                self.storage.save_message(&msg).await.ok();
+                
+                let _ = self.event_tx.send(AgentEvent::Response {
+                    session_id: session_id.clone(),
+                    content: response,
+                });
+                
+                self.session_manager.complete(&session_id).await.ok();
+                self.storage.finish_session(&session_id).await.ok();
+                
+                let _ = self.event_tx.send(AgentEvent::Done {
+                    session_id: session_id.clone(),
+                });
+            }
+            Err(e) => {
+                tracing::error!("SessionTask failed: {}", e);
+                
+                let _ = self.event_tx.send(AgentEvent::Error {
+                    session_id: session_id.clone(),
+                    message: e.to_string(),
+                });
+                
+                self.session_manager.fail(&session_id).await.ok();
             }
         }
     }
@@ -269,7 +343,7 @@ impl AgentCore {
         };
         self.storage.save_task(&stored_task).await.ok();
         
-        let event = crate::protocol::AgentEvent::AssignTask {
+        let event = AgentEvent::AssignTask {
             task_id,
             title,
             description,
@@ -320,5 +394,16 @@ impl AgentCore {
         }
         
         self.llm_client.update_config(llm_base_url, llm_api_key, llm_model).await;
+    }
+    
+    async fn get_system_prompt(&self, purpose: SessionPurpose) -> Option<String> {
+        match purpose {
+            SessionPurpose::Main => Some(include_str!("prompts/sessions/main.md").to_string()),
+            SessionPurpose::Dispatcher => Some(include_str!("prompts/sessions/dispatcher.md").to_string()),
+            SessionPurpose::Worker => Some(include_str!("prompts/sessions/worker.md").to_string()),
+            SessionPurpose::Query => Some(include_str!("prompts/sessions/query.md").to_string()),
+            SessionPurpose::Task => Some(include_str!("prompts/sessions/task.md").to_string()),
+            SessionPurpose::Remind => None,
+        }
     }
 }

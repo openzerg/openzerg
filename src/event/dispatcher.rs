@@ -93,6 +93,7 @@ impl EventDispatcher {
             AgentEvent::Done { .. } => (true, None),
             AgentEvent::Error { .. } => (true, None),
             AgentEvent::SubSessionResult { .. } => (true, None),
+            AgentEvent::SessionTask { .. } => (true, None),
         };
 
         Ok(Message::VmEventAck(VmEventAck {

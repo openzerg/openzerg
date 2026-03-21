@@ -136,6 +136,12 @@ pub enum AgentEvent {
         summary: String,
         details: String,
     },
+
+    SessionTask {
+        session_id: String,
+        task: String,
+        context: Option<serde_json::Value>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

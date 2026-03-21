@@ -518,11 +518,14 @@ pub async fn session_events(
                         AgentEvent::Error { session_id, message } => {
                             SseEvent::error(&format!("[{}] {}", session_id, message))
                         }
-                        AgentEvent::SubSessionResult { parent_session_id, child_session_id, child_session_type, status, summary, details } => {
+                        AgentEvent::SubSessionResult { parent_session_id, child_session_id, child_session_type, status, summary, details: _ } => {
                             SseEvent::response(&format!(
                                 "[SubSession] {} {} -> {}: {} | {}",
                                 child_session_type, child_session_id, parent_session_id, status, summary
                             ))
+                        }
+                        AgentEvent::SessionTask { session_id, task, context: _ } => {
+                            SseEvent::thinking(&format!("[SessionTask] {} -> {}", session_id, task))
                         }
                     };
                     
