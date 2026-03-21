@@ -34,8 +34,6 @@ pub struct SessionDetailTemplate {
     pub workers: Vec<SessionView>,
     pub context: ContextMetrics,
     pub active_tasks: Vec<TaskView>,
-    pub provider_name: String,
-    pub provider_model: String,
 }
 
 #[derive(Template)]

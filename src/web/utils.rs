@@ -24,10 +24,19 @@ impl Default for ContextMetrics {
     }
 }
 
-pub fn calculate_context(messages: &[crate::storage::StoredMessage]) -> ContextMetrics {
+pub fn calculate_context(
+    messages: &[crate::storage::StoredMessage],
+    system_prompt: Option<&str>,
+) -> ContextMetrics {
     let message_count = messages.len();
 
-    let total_chars: usize = messages.iter().map(|m| m.content.len()).sum();
+    // Calculate tokens from messages
+    let message_chars: usize = messages.iter().map(|m| m.content.len()).sum();
+
+    // Add system prompt characters if present
+    let system_chars = system_prompt.map(|s| s.len()).unwrap_or(0);
+
+    let total_chars = message_chars + system_chars;
     let total_tokens = (total_chars as f64 / 4.0) as u64;
 
     let max_context = 128_000u64;
@@ -66,7 +75,7 @@ mod tests {
     #[test]
     fn test_calculate_context_empty() {
         let messages = vec![];
-        let ctx = calculate_context(&messages);
+        let ctx = calculate_context(&messages, None);
         assert_eq!(ctx.total_tokens, 0);
         assert_eq!(ctx.usage_percent, 0);
         assert_eq!(ctx.message_count, 0);
@@ -86,8 +95,29 @@ mod tests {
             tool_calls: None,
         }];
 
-        let ctx = calculate_context(&messages);
+        let ctx = calculate_context(&messages, None);
         assert_eq!(ctx.message_count, 1);
         assert!(ctx.total_tokens > 0);
+    }
+
+    #[test]
+    fn test_calculate_context_with_system_prompt() {
+        use crate::storage::{MessageRole, StoredMessage};
+        use chrono::Utc;
+
+        let messages = vec![StoredMessage {
+            id: "1".to_string(),
+            session_id: "s1".to_string(),
+            role: MessageRole::User,
+            content: "Hello".to_string(),
+            timestamp: Utc::now(),
+            tool_calls: None,
+        }];
+
+        let system_prompt = "You are a helpful assistant";
+        let ctx = calculate_context(&messages, Some(system_prompt));
+
+        // System prompt (28 chars) + message (5 chars) = 33 chars ≈ 8 tokens
+        assert!(ctx.total_tokens > 1);
     }
 }

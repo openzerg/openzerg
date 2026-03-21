@@ -98,21 +98,13 @@ pub async fn session_detail(
         .map(SessionView::from_stored)
         .collect();
     
-    let context = calculate_context(&stored_messages);
+    let context = calculate_context(&stored_messages, Some(&system_prompt));
     
     let tasks_storage = state.storage.load_tasks().await.unwrap_or_default();
     let active_tasks: Vec<_> = tasks_storage.iter()
         .filter(|t| t.status == "InProgress" || t.status == "Pending")
         .map(TaskView::from_stored)
         .collect();
-    
-    let providers = crate::provider::ProviderManager::new(
-        state.storage.base_path().parent().unwrap_or(state.storage.base_path()).to_path_buf()
-    );
-    let active_provider = providers.get_active_provider().await;
-    
-    let provider_name = active_provider.as_ref().map(|p| p.name.clone()).unwrap_or_default();
-    let provider_model = active_provider.map(|p| p.model.clone()).unwrap_or_default();
     
     let template = SessionDetailTemplate {
         session_id: id,
@@ -130,8 +122,6 @@ pub async fn session_detail(
         workers,
         context,
         active_tasks,
-        provider_name,
-        provider_model,
     };
     
     Html(template.render().unwrap_or_default())
