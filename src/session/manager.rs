@@ -49,8 +49,14 @@ impl SessionManager {
     pub async fn load_main_from_storage(&self, storage: &crate::storage::Storage) -> Option<String> {
         if let Ok(sessions) = storage.load_sessions().await {
             if let Some(main) = sessions.iter().find(|s| s.purpose == "Main") {
+                let mut session_map = self.sessions.write().await;
                 let mut main_id = self.main_session_id.write().await;
+                
+                // Create Session object from storage data
+                let session = Session::new(main.id.clone(), SessionPurpose::Main);
+                session_map.insert(main.id.clone(), session);
                 *main_id = Some(main.id.clone());
+                
                 tracing::info!("Loaded Main session from storage: {}", main.id);
                 return Some(main.id.clone());
             }
