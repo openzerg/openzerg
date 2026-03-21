@@ -106,7 +106,7 @@ impl SessionProcessor {
                             output: r.output.clone(),
                             success: true,
                         };
-                        self.storage.save_tool_result(&stored_result).await.ok();
+                        self.storage.save_tool_result(session_id, &stored_result).await.ok();
                         r.output
                     }
                     Err(e) => {
@@ -228,7 +228,7 @@ impl SessionProcessor {
                             output: r.output.clone(),
                             success: true,
                         };
-                        self.storage.save_tool_result(&stored_result).await.ok();
+                        self.storage.save_tool_result(session_id, &stored_result).await.ok();
                         r.output
                     }
                     Err(e) => {
