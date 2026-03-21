@@ -912,5 +912,37 @@ async fn ensure_main_session(state: &std::sync::Arc<crate::api_server::ApiState>
     
     tracing::info!("Created Main session: {}", id);
     
+    if let Some(dispatcher) = state.session_manager.get_dispatcher().await {
+        let session = crate::storage::StoredSession {
+            id: dispatcher.id.clone(),
+            purpose: "Dispatcher".to_string(),
+            state: "Idle".to_string(),
+            created_at: chrono::Utc::now(),
+            started_at: None,
+            finished_at: None,
+            task_id: None,
+            query_id: None,
+            message_count: 0,
+        };
+        state.storage.save_session(&session).await?;
+        tracing::info!("Created Dispatcher session: {}", dispatcher.id);
+    }
+    
+    if let Some(worker) = state.session_manager.get_worker().await {
+        let session = crate::storage::StoredSession {
+            id: worker.id.clone(),
+            purpose: "Worker".to_string(),
+            state: "Idle".to_string(),
+            created_at: chrono::Utc::now(),
+            started_at: None,
+            finished_at: None,
+            task_id: None,
+            query_id: None,
+            message_count: 0,
+        };
+        state.storage.save_session(&session).await?;
+        tracing::info!("Created Worker session: {}", worker.id);
+    }
+    
     Ok(())
 }
