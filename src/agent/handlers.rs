@@ -88,6 +88,7 @@ impl AgentCore {
                 }
                 
                 self.session_manager.complete(&session_id).await.ok();
+                self.storage.finish_session(&session_id).await.ok();
             }
             Err(e) => {
                 tracing::error!("Failed to create session for query: {}", e);
