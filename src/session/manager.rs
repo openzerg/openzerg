@@ -40,8 +40,8 @@ impl SessionManager {
         drop(sessions);
         drop(main_id);
         
-        self.init_dispatcher().await;
-        self.init_worker().await;
+        self.init_dispatcher(None).await;
+        self.init_worker(None).await;
         
         id
     }
@@ -62,8 +62,8 @@ impl SessionManager {
                 // Initialize Dispatcher and Worker sessions
                 drop(session_map);
                 drop(main_id);
-                self.init_dispatcher().await;
-                self.init_worker().await;
+                self.init_dispatcher(Some(storage)).await;
+                self.init_worker(None).await;
                 
                 return Some(main.id.clone());
             }
@@ -71,7 +71,7 @@ impl SessionManager {
         None
     }
     
-    async fn init_dispatcher(&self) -> String {
+    async fn init_dispatcher(&self, storage: Option<&crate::storage::Storage>) -> String {
         let mut sessions = self.sessions.write().await;
         let mut dispatcher_id = self.dispatcher_session_id.write().await;
 
@@ -84,11 +84,29 @@ impl SessionManager {
         sessions.insert(id.clone(), session);
         *dispatcher_id = Some(id.clone());
         
+        // Save to database if storage is provided
+        if let Some(storage) = storage {
+            let system_prompt = include_str!("../agent/prompts/sessions/dispatcher.md").to_string();
+            let stored_session = crate::storage::StoredSession {
+                id: id.clone(),
+                purpose: "Dispatcher".to_string(),
+                state: "Idle".to_string(),
+                created_at: chrono::Utc::now(),
+                started_at: None,
+                finished_at: None,
+                task_id: None,
+                query_id: None,
+                message_count: 0,
+                system_prompt,
+            };
+            let _ = storage.save_session(&stored_session).await;
+        }
+        
         tracing::info!("Dispatcher session created: {}", id);
         id
     }
     
-    async fn init_worker(&self) -> String {
+    async fn init_worker(&self, storage: Option<&crate::storage::Storage>) -> String {
         let mut sessions = self.sessions.write().await;
         let mut worker_id = self.worker_session_id.write().await;
 
@@ -100,6 +118,24 @@ impl SessionManager {
         let session = Session::new(id.clone(), SessionPurpose::Worker);
         sessions.insert(id.clone(), session);
         *worker_id = Some(id.clone());
+        
+        // Save to database if storage is provided
+        if let Some(storage) = storage {
+            let system_prompt = include_str!("../agent/prompts/sessions/worker.md").to_string();
+            let stored_session = crate::storage::StoredSession {
+                id: id.clone(),
+                purpose: "Worker".to_string(),
+                state: "Idle".to_string(),
+                created_at: chrono::Utc::now(),
+                started_at: None,
+                finished_at: None,
+                task_id: None,
+                query_id: None,
+                message_count: 0,
+                system_prompt,
+            };
+            let _ = storage.save_session(&stored_session).await;
+        }
         
         tracing::info!("Worker session created: {}", id);
         id
