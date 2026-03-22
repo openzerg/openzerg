@@ -81,18 +81,68 @@
     </div>
     
     <script>
-        // SSE connection management
-        let eventSource = null;
+        // Global SSE connection - established once per page load
+        let globalEventSource = null;
         let currentSessionId = null;
         
-        function connectSSE(sessionId) {
-            if (eventSource) {
-                eventSource.close();
-                eventSource = null;
-            }
+        function connectGlobalSSE() {
+            if (globalEventSource) return;
             
+            globalEventSource = new EventSource('/api/events');
+            
+            globalEventSource.addEventListener('thinking', (e) => {
+                const data = JSON.parse(e.data);
+                // Show thinking for current session only
+                if (!data.session_id || data.session_id === currentSessionId) {
+                    appendThinking(data.content);
+                }
+            });
+            
+            globalEventSource.addEventListener('tool_call', (e) => {
+                const data = JSON.parse(e.data);
+                if (!data.session_id || data.session_id === currentSessionId) {
+                    appendToolCall(data.tool, data.args);
+                }
+            });
+            
+            globalEventSource.addEventListener('tool_result', (e) => {
+                const data = JSON.parse(e.data);
+                if (!data.session_id || data.session_id === currentSessionId) {
+                    appendToolResult(data.content);
+                }
+            });
+            
+            globalEventSource.addEventListener('response', (e) => {
+                const data = JSON.parse(e.data);
+                if (!data.session_id || data.session_id === currentSessionId) {
+                    appendResponse(data.content);
+                }
+            });
+            
+            globalEventSource.addEventListener('done', (e) => {
+                const data = JSON.parse(e.data);
+                if (data.session_id === currentSessionId) {
+                    markComplete(data.session_id);
+                }
+            });
+            
+            globalEventSource.addEventListener('error', (e) => {
+                const data = JSON.parse(e.data);
+                if (!data.session_id || data.session_id === currentSessionId) {
+                    appendError(data.message);
+                }
+            });
+            
+            globalEventSource.onerror = () => {
+                console.log('Global SSE connection lost, reconnecting...');
+                globalEventSource = null;
+                setTimeout(connectGlobalSSE, 3000);
+            };
+        }
+        
+        function connectSSE(sessionId) {
             currentSessionId = sessionId;
-            eventSource = new EventSource('/api/sessions/' + sessionId + '/events');
+            connectGlobalSSE();
             
             eventSource.addEventListener('thinking', (e) => {
                 const data = JSON.parse(e.data);

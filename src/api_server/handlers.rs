@@ -454,6 +454,101 @@ pub async fn get_session_context(
     }
 }
 
+pub async fn global_events(
+    State(state): State<Arc<ApiState>>,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    let mut rx = state.event_tx.subscribe();
+    
+    let stream = async_stream::stream! {
+        yield Ok(Event::default().event("connected").data("Connected to global events"));
+        
+        loop {
+            match rx.recv().await {
+                Ok(event) => {
+                    let sse_event = match event {
+                        AgentEvent::Message { content, from } => {
+                            if from == "user" {
+                                SseEvent::user_message(&content)
+                            } else {
+                                SseEvent::response(&content, None)
+                            }
+                        }
+                        AgentEvent::Query { query_id, question } => {
+                            SseEvent::response(&question, Some(query_id))
+                        }
+                        AgentEvent::AssignTask { task_id, title, .. } => {
+                            SseEvent::tool_call("assign_task", &serde_json::json!({
+                                "task_id": task_id,
+                                "title": title
+                            }))
+                        }
+                        AgentEvent::Remind { id, message } => {
+                            SseEvent::response(&message, Some(id))
+                        }
+                        AgentEvent::Interrupt { message, .. } => {
+                            SseEvent::error(&message, None)
+                        }
+                        AgentEvent::ProcessNotification { process_id, event, output_preview } => {
+                            SseEvent::tool_result(&format!(
+                                "[Process {}] {:?} {}",
+                                process_id,
+                                event,
+                                output_preview.unwrap_or_default()
+                            ))
+                        }
+                        AgentEvent::ConfigUpdate { .. } => {
+                            SseEvent::session_created("config_updated")
+                        }
+                        AgentEvent::ResourceWarning { resource, message } => {
+                            SseEvent::error(&format!("[{:?}] {}", resource, message), None)
+                        }
+                        AgentEvent::SessionCreated { session_id, purpose } => {
+                            SseEvent::session_created(&format!("{}:{}", session_id, purpose))
+                        }
+                        AgentEvent::Thinking { session_id, content } => {
+                            SseEvent::thinking(&content, Some(session_id))
+                        }
+                        AgentEvent::Response { session_id, content } => {
+                            SseEvent::response(&content, Some(session_id))
+                        }
+                        AgentEvent::Done { session_id } => {
+                            SseEvent::done(&session_id)
+                        }
+                        AgentEvent::Error { session_id, message } => {
+                            SseEvent::error(&message, Some(session_id))
+                        }
+                        AgentEvent::SubSessionResult { parent_session_id, child_session_id, child_session_type, status, summary, details: _ } => {
+                            SseEvent::response(&format!(
+                                "{}: {} | {}",
+                                child_session_type, status, summary
+                            ), Some(child_session_id))
+                        }
+                        AgentEvent::SessionTask { session_id, task, context: _ } => {
+                            SseEvent::thinking(&task, Some(session_id))
+                        }
+                        AgentEvent::UserMessage { .. } => {
+                            continue;
+                        }
+                    };
+                    
+                    let data_json = serde_json::to_string(&sse_event.data).unwrap_or_default();
+                    yield Ok(Event::default()
+                        .event(sse_event.event_type)
+                        .data(data_json));
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Closed) => {
+                    break;
+                }
+                Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {
+                    continue;
+                }
+            }
+        }
+    };
+    
+    Sse::new(stream).keep_alive(KeepAlive::default())
+}
+
 pub async fn session_events(
     Path(session_id): Path<String>,
     State(state): State<Arc<ApiState>>,
