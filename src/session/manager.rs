@@ -79,6 +79,20 @@ impl SessionManager {
             return id.clone();
         }
 
+        // Try to load from storage first
+        if let Some(storage) = storage {
+            if let Ok(all_sessions) = storage.load_sessions().await {
+                if let Some(existing) = all_sessions.iter().find(|s| s.purpose == "Dispatcher") {
+                    let session = Session::new(existing.id.clone(), SessionPurpose::Dispatcher);
+                    sessions.insert(existing.id.clone(), session);
+                    *dispatcher_id = Some(existing.id.clone());
+                    tracing::info!("Loaded Dispatcher session from storage: {}", existing.id);
+                    return existing.id.clone();
+                }
+            }
+        }
+
+        // Create new if not found
         let id = uuid::Uuid::new_v4().to_string();
         let session = Session::new(id.clone(), SessionPurpose::Dispatcher);
         sessions.insert(id.clone(), session);
@@ -114,6 +128,20 @@ impl SessionManager {
             return id.clone();
         }
 
+        // Try to load from storage first
+        if let Some(storage) = storage {
+            if let Ok(all_sessions) = storage.load_sessions().await {
+                if let Some(existing) = all_sessions.iter().find(|s| s.purpose == "Worker") {
+                    let session = Session::new(existing.id.clone(), SessionPurpose::Worker);
+                    sessions.insert(existing.id.clone(), session);
+                    *worker_id = Some(existing.id.clone());
+                    tracing::info!("Loaded Worker session from storage: {}", existing.id);
+                    return existing.id.clone();
+                }
+            }
+        }
+
+        // Create new if not found
         let id = uuid::Uuid::new_v4().to_string();
         let session = Session::new(id.clone(), SessionPurpose::Worker);
         sessions.insert(id.clone(), session);
