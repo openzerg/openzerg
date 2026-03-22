@@ -92,24 +92,18 @@
             
             globalEventSource.addEventListener('thinking', (e) => {
                 const data = JSON.parse(e.data);
-                // Show thinking for current session only
-                if (!data.session_id || data.session_id === currentSessionId) {
-                    appendThinking(data.content);
-                }
+                // Show thinking from all sessions (including Dispatcher analysis)
+                appendThinking(data.content);
             });
             
             globalEventSource.addEventListener('tool_call', (e) => {
                 const data = JSON.parse(e.data);
-                if (!data.session_id || data.session_id === currentSessionId) {
-                    appendToolCall(data.tool, data.args);
-                }
+                appendToolCall(data.tool, data.args);
             });
             
             globalEventSource.addEventListener('tool_result', (e) => {
                 const data = JSON.parse(e.data);
-                if (!data.session_id || data.session_id === currentSessionId) {
-                    appendToolResult(data.content);
-                }
+                appendToolResult(data.content);
             });
             
             globalEventSource.addEventListener('response', (e) => {
@@ -143,29 +137,7 @@
         function connectSSE(sessionId) {
             currentSessionId = sessionId;
             connectGlobalSSE();
-            
-            eventSource.addEventListener('thinking', (e) => {
-                const data = JSON.parse(e.data);
-                // Show thinking for all sessions (including Dispatcher analysis)
-                appendThinking(data.content);
-            });
-            
-            eventSource.addEventListener('tool_call', (e) => {
-                const data = JSON.parse(e.data);
-                appendToolCall(data.tool, data.args);
-            });
-            
-            eventSource.addEventListener('tool_result', (e) => {
-                const data = JSON.parse(e.data);
-                appendToolResult(data.content);
-            });
-            
-            eventSource.addEventListener('response', (e) => {
-                const data = JSON.parse(e.data);
-                // Only show response for current session
-                if (!data.session_id || data.session_id === currentSessionId) {
-                    appendResponse(data.content);
-                }
+        }
             });
             
             eventSource.addEventListener('done', (e) => {
