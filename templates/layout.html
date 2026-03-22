@@ -301,8 +301,8 @@
         
         // Switch session without page reload - SPA style
         async function switchSessionView(sessionId) {
-            // Update sidebar active state
-            document.querySelectorAll('.sidebar .px-2.py-2').forEach(el => {
+            // Update sidebar active state - remove highlight from all sessions
+            document.querySelectorAll('[onclick^="switchSessionView"]').forEach(el => {
                 el.classList.remove('bg-primary/10', 'text-primary');
                 el.classList.add('hover:bg-surfaceHover', 'text-muted');
             });
