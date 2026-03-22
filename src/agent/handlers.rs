@@ -212,7 +212,13 @@ impl AgentCore {
                         timestamp: chrono::Utc::now(),
                         tool_calls: None,
                     };
-                    self.storage.save_message(&msg).await.ok();
+                    if let Err(e) = self.storage.save_message(&msg).await {
+                        tracing::error!("Failed to save Dispatcher message: {}", e);
+                    } else {
+                        tracing::info!("Saved Dispatcher analysis to session {}", disp.id);
+                    }
+                } else {
+                    tracing::warn!("Dispatcher session not found, cannot save analysis");
                 }
                 
                 for mut task in plan.tasks {
