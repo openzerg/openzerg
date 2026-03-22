@@ -299,6 +299,102 @@
             // Could update UI to show completion
         }
         
+        // Switch session without page reload - SPA style
+        async function switchSessionView(sessionId) {
+            // Update sidebar active state
+            document.querySelectorAll('.sidebar .px-2.py-2').forEach(el => {
+                el.classList.remove('bg-primary/10', 'text-primary');
+                el.classList.add('hover:bg-surfaceHover', 'text-muted');
+            });
+            
+            // Find and highlight clicked session
+            const clickedEl = document.querySelector(`[onclick="switchSessionView('${sessionId}')"]`);
+            if (clickedEl) {
+                clickedEl.classList.remove('hover:bg-surfaceHover', 'text-muted');
+                clickedEl.classList.add('bg-primary/10', 'text-primary');
+            }
+            
+            // Update current session ID for SSE filtering
+            currentSessionId = sessionId;
+            
+            // Fetch new session data
+            try {
+                const [sessionResp, messagesResp] = await Promise.all([
+                    fetch('/api/sessions/' + sessionId),
+                    fetch('/api/sessions/' + sessionId + '/messages')
+                ]);
+                
+                const sessionData = await sessionResp.json();
+                const messagesData = await messagesResp.json();
+                
+                const session = sessionData.data;
+                const messages = messagesData.data.messages;
+                
+                // Update page title
+                document.title = 'Session ' + session.id.substring(0, 8) + ' - OpenZerg';
+                
+                // Update messages area
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.innerHTML = '';
+                
+                // System prompt
+                if (session.system_prompt) {
+                    const sysPrompt = document.createElement('details');
+                    sysPrompt.className = 'group bg-surface rounded-xl border border-border overflow-hidden';
+                    sysPrompt.innerHTML = '<summary class="flex items-center justify-between px-4 py-3 cursor-pointer bg-surfaceHover/50 hover:bg-surfaceHover transition-colors"><div class="flex items-center gap-2"><svg class="w-4 h-4 text-primary transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg><span class="text-xs font-semibold text-primary uppercase tracking-wider">System Prompt</span></div><span class="text-xs text-muted">Click to expand</span></summary><div class="px-4 py-3 border-t border-border"><pre class="text-xs text-muted whitespace-pre-wrap font-mono leading-relaxed max-h-96 overflow-y-auto scrollbar-thin">' + escapeHtml(session.system_prompt) + '</pre></div></summary></details>';
+                    messagesDiv.appendChild(sysPrompt);
+                }
+                
+                // Messages
+                messages.forEach(msg => {
+                    const msgDiv = document.createElement('div');
+                    const borderClass = msg.role === 'User' ? 'bg-primary/5 border-primary/20' : msg.role === 'Thinking' ? 'bg-surface border-l-4 border-l-yellow-500' : 'bg-surface border-border';
+                    const textClass = msg.role === 'User' ? 'text-primary' : msg.role === 'Assistant' ? 'text-accent' : msg.role === 'Thinking' ? 'text-yellow-500' : 'text-muted';
+                    const thinkingClass = msg.role === 'Thinking' ? 'thinking-msg collapsed' : '';
+                    const thinkingToggle = msg.role === 'Thinking' ? 'thinking-toggle cursor-pointer' : '';
+                    const thinkingHint = msg.role === 'Thinking' ? '<span class="text-xs text-muted thinking-hint">(click to expand)</span>' : '';
+                    const thinkingContent = msg.role === 'Thinking' ? 'thinking-content' : '';
+                    
+                    msgDiv.className = `rounded-xl border ${borderClass} ${thinkingClass}`;
+                    msgDiv.innerHTML = `<div class="flex items-center gap-2 px-4 py-2.5 border-b ${msg.role === 'User' ? 'border-primary/10' : msg.role === 'Thinking' ? 'border-yellow-500/20' : 'border-border'} ${thinkingToggle}"><span class="text-xs font-semibold ${textClass} uppercase tracking-wider">${msg.role}</span>${thinkingHint}</div><div class="px-4 py-3"><div class="text-sm text-text leading-relaxed ${thinkingContent} whitespace-pre-wrap font-mono">${escapeHtml(msg.content)}</div></div>`;
+                    messagesDiv.appendChild(msgDiv);
+                });
+                
+                // Update input area
+                const inputArea = document.querySelector('.p-4.border-t.border-border.bg-surface, .p-4.border-t.border-border.bg-surface\\/50');
+                if (inputArea) {
+                    if (session.purpose === 'Main') {
+                        inputArea.className = 'p-4 border-t border-border bg-surface flex-shrink-0';
+                        inputArea.innerHTML = '<form id="message-form" class="flex gap-3" onsubmit="sendMessage(event, \'' + sessionId + '\')"><input type="text" id="message-input" placeholder="Type a message..." class="flex-1 px-4 py-3 bg-background border border-border rounded-xl text-text placeholder-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" /><button type="submit" id="send-btn" class="px-6 py-3 bg-primary hover:bg-primaryHover text-white font-medium rounded-xl transition-colors flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>Send</button></button></form>';
+                    } else {
+                        inputArea.className = 'p-4 border-t border-border bg-surface/50 text-center flex-shrink-0';
+                        inputArea.innerHTML = '<p class="text-sm text-muted">This is a <span class="text-text font-medium">' + session.purpose + '</span> session. <a href="/ui/sessions/' + sessionId + '" class="text-primary hover:underline">Open Main Session</a> to chat.</p>';
+                    }
+                }
+                
+                // Update context panel
+                const contextDiv = document.querySelector('.w-80.bg-surface');
+                if (contextDiv && session.context) {
+                    contextDiv.innerHTML = '<div class="mb-6"><h3 class="text-xs font-semibold text-muted uppercase tracking-wider mb-4">Context</h3><div class="space-y-3"><div class="flex justify-between items-center py-2 border-b border-border"><span class="text-sm text-muted">Tokens</span><span class="text-sm font-mono text-text">' + session.context.total_tokens + '</span></div><div class="h-2 bg-background rounded-full overflow-hidden"><div class="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all" style="width: ' + session.context.usage_percent + '%"></div></div><div class="flex justify-between items-center py-2 border-b border-border"><span class="text-sm text-muted">Usage</span><span class="text-sm font-mono text-text">' + session.context.usage_percent + '%</span></div><div class="flex justify-between items-center py-2 border-b border-border"><span class="text-sm text-muted">Messages</span><span class="text-sm font-mono text-text">' + session.context.message_count + '</span></div></div></div>';
+                }
+                
+                // Add thinking toggle handlers
+                document.querySelectorAll('.thinking-toggle').forEach(function(toggle) {
+                    toggle.addEventListener('click', function() {
+                        const msgDiv = this.closest('.thinking-msg');
+                        msgDiv.classList.toggle('collapsed');
+                        const hint = this.querySelector('.thinking-hint');
+                        if (hint) {
+                            hint.textContent = msgDiv.classList.contains('collapsed') ? '(click to expand)' : '(click to collapse)';
+                        }
+                    });
+                });
+                
+            } catch (err) {
+                console.error('Failed to load session:', err);
+            }
+        }
+        
         function switchSession(sessionId) {
             window.location.href = '/ui/sessions/' + sessionId;
         }
