@@ -92,18 +92,24 @@
             
             globalEventSource.addEventListener('thinking', (e) => {
                 const data = JSON.parse(e.data);
-                // Show thinking from all sessions (including Dispatcher analysis)
-                appendThinking(data.content);
+                // Only show thinking for current session
+                if (!data.session_id || data.session_id === currentSessionId) {
+                    appendThinking(data.content);
+                }
             });
             
             globalEventSource.addEventListener('tool_call', (e) => {
                 const data = JSON.parse(e.data);
-                appendToolCall(data.tool, data.args);
+                if (!data.session_id || data.session_id === currentSessionId) {
+                    appendToolCall(data.tool, data.args);
+                }
             });
             
             globalEventSource.addEventListener('tool_result', (e) => {
                 const data = JSON.parse(e.data);
-                appendToolResult(data.content);
+                if (!data.session_id || data.session_id === currentSessionId) {
+                    appendToolResult(data.content);
+                }
             });
             
             globalEventSource.addEventListener('response', (e) => {
