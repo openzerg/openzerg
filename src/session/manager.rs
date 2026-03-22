@@ -58,6 +58,13 @@ impl SessionManager {
                 *main_id = Some(main.id.clone());
                 
                 tracing::info!("Loaded Main session from storage: {}", main.id);
+                
+                // Initialize Dispatcher and Worker sessions
+                drop(session_map);
+                drop(main_id);
+                self.init_dispatcher().await;
+                self.init_worker().await;
+                
                 return Some(main.id.clone());
             }
         }
