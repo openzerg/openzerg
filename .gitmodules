@@ -37,3 +37,6 @@
 [submodule "tool-fs"]
 	path = tool-fs
 	url = git@github.com:openzerg/tool-fs.git
+[submodule "overmind-webui"]
+	path = overmind-webui
+	url = git@github.com:openzerg/overmind-webui.git
