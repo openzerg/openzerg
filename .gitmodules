@@ -25,3 +25,6 @@
 [submodule "tool-job"]
 	path = tool-job
 	url = git@github.com:openzerg/tool-job.git
+[submodule "tool-memory"]
+	path = tool-memory
+	url = git@github.com:openzerg/tool-memory.git
