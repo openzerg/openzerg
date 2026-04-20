@@ -22,3 +22,6 @@
 [submodule "infra"]
 	path = infra
 	url = git@github.com:openzerg/infra.git
+[submodule "tool-job"]
+	path = tool-job
+	url = git@github.com:openzerg/tool-job.git
