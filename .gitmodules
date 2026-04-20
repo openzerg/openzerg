@@ -34,3 +34,6 @@
 [submodule "worker"]
 	path = worker
 	url = git@github.com:openzerg/worker.git
+[submodule "tool-fs"]
+	path = tool-fs
+	url = git@github.com:openzerg/tool-fs.git
