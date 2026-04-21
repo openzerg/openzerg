@@ -1,42 +1,42 @@
 [submodule "common"]
 	path = common
-	url = git@github.com:openzerg/common.git
+	url = https://github.com/openzerg/common.git
 [submodule "registry"]
 	path = registry
-	url = git@github.com:openzerg/registry.git
+	url = https://github.com/openzerg/registry.git
 [submodule "agent"]
 	path = agent
-	url = git@github.com:openzerg/agent.git
+	url = https://github.com/openzerg/agent.git
 [submodule "ai-proxy"]
 	path = ai-proxy
-	url = git@github.com:openzerg/ai-proxy.git
+	url = https://github.com/openzerg/ai-proxy.git
 [submodule "skill-manager"]
 	path = skill-manager
-	url = git@github.com:openzerg/skill-manager.git
+	url = https://github.com/openzerg/skill-manager.git
 [submodule "workspace-manager"]
 	path = workspace-manager
-	url = git@github.com:openzerg/workspace-manager.git
+	url = https://github.com/openzerg/workspace-manager.git
 [submodule "tool-server-manager"]
 	path = tool-server-manager
-	url = git@github.com:openzerg/tool-server-manager.git
+	url = https://github.com/openzerg/tool-server-manager.git
 [submodule "infra"]
 	path = infra
-	url = git@github.com:openzerg/infra.git
+	url = https://github.com/openzerg/infra.git
 [submodule "tool-job"]
 	path = tool-job
-	url = git@github.com:openzerg/tool-job.git
+	url = https://github.com/openzerg/tool-job.git
 [submodule "tool-memory"]
 	path = tool-memory
-	url = git@github.com:openzerg/tool-memory.git
+	url = https://github.com/openzerg/tool-memory.git
 [submodule "tool-web"]
 	path = tool-web
-	url = git@github.com:openzerg/tool-web.git
+	url = https://github.com/openzerg/tool-web.git
 [submodule "worker"]
 	path = worker
-	url = git@github.com:openzerg/worker.git
+	url = https://github.com/openzerg/worker.git
 [submodule "tool-fs"]
 	path = tool-fs
-	url = git@github.com:openzerg/tool-fs.git
+	url = https://github.com/openzerg/tool-fs.git
 [submodule "overmind-webui"]
 	path = overmind-webui
-	url = git@github.com:openzerg/overmind-webui.git
+	url = https://github.com/openzerg/overmind-webui.git
